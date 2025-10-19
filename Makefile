@@ -287,6 +287,7 @@ ifeq ($(LAB),util)
 endif
 ifeq ($(LAB),syscall)
 	UEXTRA += user/exec.sh
+	UPROGS += $U/_sandbox
 endif
 
 fs.img: mkfs/mkfs README $(UEXTRA) $(UPROGS)
