@@ -1,0 +1,10 @@
+kernel/trap.c:68 called syscall
+
+the value of p->trapframe->a7 is 15 and represents system call of open
+
+the previous mode that the CPU was in User Mode
+
+the assembly instruction the kernel is panicing at "lw a3, 0(zero)"
+
+The register corresponds to the variable num is a3
+
