@@ -286,6 +286,8 @@ kfork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+  np->system_call_mask = p->system_call_mask;
+  safestrcpy(np->allowed_path_name, p->allowed_path_name, sizeof(p->allowed_path_name));
 
   pid = np->pid;
 
