@@ -132,11 +132,11 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (argc > 3 && !strcmp("-exec", argv[4])) {
+  if (argc > 3 && !strcmp("-exec", argv[3])) {
     exec_argc = argc - 4;
     if (exec_argc > 0) {
       for (int i = 0; i < exec_argc; i++) {
-        exec_argv[i] = argv[i + 5];
+        exec_argv[i] = argv[i + 4];
       }
     }
   }
