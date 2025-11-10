@@ -142,9 +142,28 @@ walkaddr(pagetable_t pagetable, uint64 va)
 
 
 #if defined(LAB_PGTBL) || defined(SOL_MMAP) || defined(SOL_COW)
-void
-vmprint(pagetable_t pagetable) {
-  // your code here
+void do_vmprint(pagetable_t, uint64, int);
+
+void vmprint(pagetable_t pagetable) {
+  printf("page table %p\n", pagetable); 
+  do_vmprint(pagetable, 0, 1);
+}
+
+void do_vmprint(pagetable_t pagetable, uint64 base, int level) {
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V) {
+      uint64 va = base + (i << ((3 - level) * 9 + 12)); 
+      for (int j = 0; j < level; j++) {
+        printf(" ..");        
+      }
+      printf("%p: pte %p pa %p\n", (void *)va, (void *)pte, (void *)PTE2PA(pte));
+      if (!PTE_LEAF(pte)) {
+          uint64 child = PTE2PA(pte);
+          do_vmprint((pagetable_t)child, va, level + 1);
+      }
+    }
+  }
 }
 #endif
 
