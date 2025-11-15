@@ -10,6 +10,10 @@
 #include "defs.h"
 
 void freerange(void *pa_start, void *pa_end);
+#ifdef LAB_PGTBL
+void superfree(void *);
+void *superalloc(void);
+#endif
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
@@ -21,6 +25,9 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+#ifdef LAB_PGTBL
+  struct run *superlist;
+#endif 
 } kmem;
 
 void
@@ -34,9 +41,20 @@ void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+
+  p = (char*)PGROUNDUP((uint64)pa_start); 
+  for(; p + PGSIZE <= (char*)SUPERSTART; p += PGSIZE)
     kfree(p);
+
+#ifdef LAB_PGTBL
+  p = (char*)SUPERPGROUNDUP((uint64)p);
+  for (; p + SUPERPGSIZE <= (char *) pa_end; p +=SUPERPGSIZE)
+    superfree(p);
+#else
+  p = (char*)PGROUNDUP((uint64)p);
+  for (; p + PGSIZE <= (char *) pa_end; p +=PGSIZE)
+    free(p);
+#endif
 }
 
 // Free the page of physical memory pointed at by pa,
@@ -80,3 +98,40 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+#ifdef LAB_PGTBL
+void *
+superalloc(void)
+{
+  struct run *r;
+
+  acquire(&kmem.lock);
+  r = kmem.superlist;
+  if(r)
+    kmem.superlist = r->next;
+  release(&kmem.lock);
+
+  if(r)
+    memset((char*)r, 5, SUPERPGSIZE); // fill with junk
+  return (void*)r;
+}
+
+void
+superfree(void *pa)
+{
+  struct run *r;
+
+  if(((uint64)pa % SUPERPGSIZE) != 0 || (char*)pa < (char *)SUPERSTART || (uint64)pa >= PHYSTOP)
+    panic("superfree");
+
+  // Fill with junk to catch dangling refs.
+  memset(pa, 1, SUPERPGSIZE);
+
+  r = (struct run*)pa;
+
+  acquire(&kmem.lock);
+  r->next = kmem.superlist;
+  kmem.superlist = r;
+  release(&kmem.lock);
+}
+#endif 
