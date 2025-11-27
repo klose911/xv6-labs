@@ -103,6 +103,9 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     if (*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
 #ifdef LAB_PGTBL
+      if (*pte & PTE_S) {
+        return pte; 
+      }
       if (PTE_LEAF(*pte)) {
         return pte;
       }
@@ -206,7 +209,11 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       return -1;
     if (*pte & PTE_V)
       panic("mappages: remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    
+    *pte = PA2PTE(pa) | perm | PTE_V; 
+    if (suppg) 
+      *pte |= PTE_S;
+    
     if (a == last)
       break;
     a += pgsize;
@@ -235,22 +242,29 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
   uint64 a;
   pte_t *pte;
-  int sz = PGSIZE;
+  int sz;
 
   if ((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
 
-  for (a = va; a < va + npages * PGSIZE; a += sz) {
+  uint64 end = va + npages * PGSIZE; 
+  for (a = va; a < end; a += sz) {
+    sz = PGSIZE; 
+
     if ((pte = walk(pagetable, a, 0)) == 0) // leaf page table entry allocated?
       continue;
     if ((*pte & PTE_V) == 0) // has physical page been allocated?
       continue;
-    sz = PGSIZE;
     if (PTE_FLAGS(*pte) == PTE_V)
-      panic("uvmunmap: not a leaf");
+      panic("uvmunmap: not a leaf"); 
+    
+    uint64 pa = PTE2PA(*pte);
+    int suppg = (a + SUPERPGSIZE < end) && (*pte & PTE_S) && pa >= SUPERSTART;  
     if (do_free) {
-      uint64 pa = PTE2PA(*pte);
-      kfree((void *)pa);
+      suppg ? superfree((void *)pa) : kfree((void *)pa);
+    }
+    if (suppg) {
+      sz = SUPERPGSIZE; 
     }
     *pte = 0;
   }
@@ -302,22 +316,11 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   if (newsz >= oldsz)
     return oldsz;
 
-  int use_super_page = 0;
-#ifdef LAB_PGTBL
-  use_super_page = (oldsz - newsz) % SUPERPGSIZE == 0;
-#endif
-
-  if (use_super_page) {
-    if (SUPERPGROUNDUP(newsz) < SUPERPGROUNDUP(oldsz)) {
-      int npages = (SUPERPGROUNDUP(oldsz) - SUPERPGROUNDUP(newsz)) / SUPERPGSIZE;
-      uvmunmap(pagetable, SUPERPGROUNDUP(newsz), npages, 1);
-    }
-  } else if (PGROUNDUP(newsz) < PGROUNDUP(oldsz)) {
+  if (PGROUNDUP(newsz) < PGROUNDUP(oldsz)) {
       int npages = (PGROUNDUP(oldsz) - PGROUNDUP(newsz)) / PGSIZE;
       uvmunmap(pagetable, PGROUNDUP(newsz), npages, 1);
   }
   
-
   return newsz;
 }
 
