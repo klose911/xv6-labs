@@ -234,7 +234,55 @@ uvmcreate()
   memset(pagetable, 0, PGSIZE);
   return pagetable;
 }
+void demote_superpage(pagetable_t pagetable, uint64 va) 
+{
+  pte_t *pte;
+  // printf("demote_superpage called for va %p\n", (void *)va); 
+  if (pagetable == 0) {
+    panic("demotesuperpage: pagetable is null");
+  }
 
+  if (va % SUPERPGSIZE != 0) {
+    panic("demotesuperpage: not super page aligned");
+  }
+
+  if ((pte = walk(pagetable, va, 0)) == 0 ) {
+    panic("demotesuperpage: walk failed");
+  }
+
+  if ((*pte & PTE_V) == 0) {
+    panic("demotesuperpage: pte not valid");
+  }
+  if ((*pte & PTE_S) == 0) {
+    panic("demotesuperpage: not a superpage");
+  }
+
+  printf("pte = %lx\n", *pte); 
+  uint64 pa = PTE2PA(*pte); // superpage 指向的物理地址
+  int pte_flags = PTE_FLAGS(*pte); 
+  pte_flags &= ~PTE_S; // 清除 superpage 标志 
+
+  pagetable_t new_lvl2 = (pde_t *)kalloc(); 
+  if (new_lvl2 == 0) {
+    panic("demotesuperpage: kalloc failed");
+  }
+  memset(new_lvl2, 0, PGSIZE); 
+  *pte = PA2PTE(new_lvl2) | PTE_V;
+  
+  char *mem; 
+
+  for (int i = 0; i < 512; i++) {
+    if ((mem = kalloc()) == 0)
+      panic("demotesuperpage: kalloc failed during loop"); 
+    memmove(mem, (char *)pa, PGSIZE);  
+
+    pte_t *leaf_pte = new_lvl2 + i;
+    *leaf_pte = PA2PTE(mem) | pte_flags | PTE_V;
+    pa += PGSIZE;
+  }
+
+  superfree((void *)pa);
+}
 // Remove npages of mappings starting from va. va must be
 // page-aligned. It's OK if the mappings don't exist.
 // Optionally free the physical memory.
@@ -259,13 +307,21 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not a leaf"); 
     
     uint64 pa = PTE2PA(*pte);
-    int suppg = (a + SUPERPGSIZE < end) && (*pte & PTE_S) && pa >= SUPERSTART;  
+    int suppg = 0; 
+    if (*pte & PTE_S ) { 
+      suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE < end) ;
+      if (suppg) {
+        sz = SUPERPGSIZE; 
+      }  else {
+        demote_superpage(pagetable, SUPERPGROUNDDOWN(a));
+        pte = walk(pagetable, a, 0);
+      }
+    }
+
     if (do_free) {
       suppg ? superfree((void *)pa) : kfree((void *)pa);
     }
-    if (suppg) {
-      sz = SUPERPGSIZE; 
-    }
+
     *pte = 0;
   }
 }
