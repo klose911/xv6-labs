@@ -103,9 +103,6 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     if (*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
 #ifdef LAB_PGTBL
-      if (*pte & PTE_S) {
-        return pte; 
-      }
       if (PTE_LEAF(*pte)) {
         return pte;
       }
@@ -210,9 +207,7 @@ int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if (*pte & PTE_V)
       panic("mappages: remap");
     
-    *pte = PA2PTE(pa) | perm | PTE_V; 
-    if (suppg) 
-      *pte |= PTE_S;
+    *pte = PA2PTE(pa) | perm | PTE_V;
     
     if (a == last)
       break;
@@ -252,19 +247,14 @@ void demote_superpage(pagetable_t pagetable, uint64 va)
   if ((*pte & PTE_V) == 0) {
     panic("demotesuperpage: pte not valid");
   }
-  if ((*pte & PTE_S) == 0) {
-    panic("demotesuperpage: not a superpage");
-  }
 
-  // printf("pte = %lx\n", *pte); 
-  uint64 pa = PTE2PA(*pte); // superpage 指向的物理地址
+  uint64 pa = PTE2PA(*pte); 
 
   if (pa < SUPERSTART || pa >= PHYSTOP) {
     panic("demotesuperpage: invalid superpage address");
   }
 
   int pte_flags = PTE_FLAGS(*pte); 
-  pte_flags &= ~PTE_S; // 清除 superpage 标志 
 
   pagetable_t new_lvl2 = (pde_t *)kalloc(); 
   if (new_lvl2 == 0) {
@@ -283,7 +273,7 @@ void demote_superpage(pagetable_t pagetable, uint64 va)
     *leaf_pte = PA2PTE(mem) | pte_flags | PTE_V;
   }
 
-  superfree((void *) pa); // 释放原 superpage 的物理内存
+  superfree((void *) pa); 
 }
 // Remove npages of mappings starting from va. va must be
 // page-aligned. It's OK if the mappings don't exist.
@@ -310,7 +300,7 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     
     uint64 pa = PTE2PA(*pte);
     int suppg = 0; 
-    if (*pte & PTE_S ) { 
+    if (pa >= SUPERSTART) { 
       suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE <= end);
       if (suppg) {
         sz = SUPERPGSIZE; 
@@ -448,7 +438,7 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     }
 
     pa = PTE2PA(*pte);
-    suppg = *pte & PTE_S; 
+    suppg = pa >= SUPERSTART; 
     szinc = suppg ? SUPERPGSIZE : PGSIZE;
 
     flags = PTE_FLAGS(*pte);
