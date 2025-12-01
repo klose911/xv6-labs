@@ -237,7 +237,6 @@ uvmcreate()
 void demote_superpage(pagetable_t pagetable, uint64 va) 
 {
   pte_t *pte;
-  // printf("demote_superpage called for va %p\n", (void *)va); 
   if (pagetable == 0) {
     panic("demotesuperpage: pagetable is null");
   }
@@ -247,7 +246,7 @@ void demote_superpage(pagetable_t pagetable, uint64 va)
   }
 
   if ((pte = walk(pagetable, va, 0)) == 0 ) {
-    panic("demotesuperpage: walk failed");
+    printf("demotesuperpage: walk failed for va %p\n", (void *)va);
   }
 
   if ((*pte & PTE_V) == 0) {
@@ -257,8 +256,13 @@ void demote_superpage(pagetable_t pagetable, uint64 va)
     panic("demotesuperpage: not a superpage");
   }
 
-  printf("pte = %lx\n", *pte); 
+  // printf("pte = %lx\n", *pte); 
   uint64 pa = PTE2PA(*pte); // superpage 指向的物理地址
+
+  if (pa < SUPERSTART || pa >= PHYSTOP) {
+    panic("demotesuperpage: invalid superpage address");
+  }
+
   int pte_flags = PTE_FLAGS(*pte); 
   pte_flags &= ~PTE_S; // 清除 superpage 标志 
 
@@ -270,18 +274,16 @@ void demote_superpage(pagetable_t pagetable, uint64 va)
   *pte = PA2PTE(new_lvl2) | PTE_V;
   
   char *mem; 
-
   for (int i = 0; i < 512; i++) {
     if ((mem = kalloc()) == 0)
       panic("demotesuperpage: kalloc failed during loop"); 
-    memmove(mem, (char *)pa, PGSIZE);  
+    memmove(mem, (char *)pa + i * PGSIZE, PGSIZE);  
 
     pte_t *leaf_pte = new_lvl2 + i;
     *leaf_pte = PA2PTE(mem) | pte_flags | PTE_V;
-    pa += PGSIZE;
   }
 
-  superfree((void *)pa);
+  superfree((void *) pa); // 释放原 superpage 的物理内存
 }
 // Remove npages of mappings starting from va. va must be
 // page-aligned. It's OK if the mappings don't exist.
@@ -309,12 +311,13 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     uint64 pa = PTE2PA(*pte);
     int suppg = 0; 
     if (*pte & PTE_S ) { 
-      suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE < end) ;
+      suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE <= end) && (pa >= SUPERSTART);
       if (suppg) {
         sz = SUPERPGSIZE; 
       }  else {
         demote_superpage(pagetable, SUPERPGROUNDDOWN(a));
         pte = walk(pagetable, a, 0);
+        pa = PTE2PA(*pte);
       }
     }
 
@@ -434,9 +437,10 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       continue;
     }
 
-    suppg = *pte & PTE_S; 
-    szinc = suppg ? SUPERPGSIZE : PGSIZE;
     pa = PTE2PA(*pte);
+    suppg = pa >= SUPERSTART; 
+    szinc = suppg ? SUPERPGSIZE : PGSIZE;
+
     flags = PTE_FLAGS(*pte);
     if ((mem = suppg ? superalloc() : kalloc()) == 0)
       goto err;
