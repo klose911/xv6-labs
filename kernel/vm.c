@@ -311,7 +311,7 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     uint64 pa = PTE2PA(*pte);
     int suppg = 0; 
     if (*pte & PTE_S ) { 
-      suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE <= end) && (pa >= SUPERSTART);
+      suppg = (a % SUPERPGSIZE == 0) && (a + SUPERPGSIZE <= end);
       if (suppg) {
         sz = SUPERPGSIZE; 
       }  else {
@@ -438,7 +438,7 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     }
 
     pa = PTE2PA(*pte);
-    suppg = pa >= SUPERSTART; 
+    suppg = *pte & PTE_S; 
     szinc = suppg ? SUPERPGSIZE : PGSIZE;
 
     flags = PTE_FLAGS(*pte);
