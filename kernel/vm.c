@@ -346,12 +346,22 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
 
   for (a = oldsz; a < newsz; a += sz) {
     suppg = (a + SUPERPGSIZE <= newsz) && (a % SUPERPGSIZE == 0);
-    sz = suppg ? SUPERPGSIZE : PGSIZE; 
-    mem = suppg ? superalloc() : kalloc();
+    sz = suppg ? SUPERPGSIZE : PGSIZE;
+    if (suppg) {
+      mem =  superalloc();
+      if (mem == 0) {
+        suppg = 0;
+        sz = PGSIZE;
+      }
+    }
 
-    if (mem == 0) {
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+    if (suppg == 0) {
+      mem = kalloc();
+
+      if (mem == 0) {
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+      }
     }
 #ifndef LAB_SYSCALL
     memset(mem, 0, sz);
