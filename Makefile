@@ -88,7 +88,6 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
-CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 
 ifdef LAB
@@ -214,11 +213,6 @@ UPROGS += \
 	$U/_secret
 endif
 
-ifeq ($(LAB),lock)
-UPROGS += \
-	$U/_stats
-endif
-
 ifeq ($(LAB),traps)
 UPROGS += \
 	$U/_call\
@@ -261,7 +255,8 @@ endif
 ifeq ($(LAB),lock)
 UPROGS += \
 	$U/_kalloctest\
-	$U/_bcachetest
+	$U/_stats\
+	$U/_rwlktest
 endif
 
 ifeq ($(LAB),fs)
@@ -317,6 +312,9 @@ CPUS := 3
 endif
 ifeq ($(LAB),fs)
 CPUS := 1
+endif
+ifeq ($(LAB),lock)
+CPUS := 4
 endif
 
 FWDPORT1 = $(shell expr `id -u` % 5000 + 25999)
