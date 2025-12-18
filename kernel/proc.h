@@ -107,4 +107,5 @@ struct proc {
   uint alarm_ticks;            // number of ticks between alarms
   uint alarm_next;        // countdown to next alarm
   void (*alarm_handler);       // pointer to handler function
+  struct trapframe alarmframe; // saved trapframe for alarm handling
 };
