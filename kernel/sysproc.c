@@ -139,10 +139,10 @@ sys_sigalarm(void)
 uint64 
 sys_sigreturn(void) 
 {
-  // struct proc *p = myproc();
+  struct proc *p = myproc();
 
-  // // Restore saved trapframe from sigtramp
-  // *(p->trapframe) = p->tf_backup;
+  // Restore saved trapframe from sigtramp
+  *(p->trapframe) = p->alarmframe;
 
   // // Allow future signals
   // p->handling_sig = 0;
