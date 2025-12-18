@@ -106,6 +106,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   uint alarm_ticks;            // number of ticks between alarms
   uint alarm_next;        // countdown to next alarm
+  uint enable_alarm;         // is alarm enabled
   void (*alarm_handler);       // pointer to handler function
   struct trapframe alarmframe; // saved trapframe for alarm handling
 };

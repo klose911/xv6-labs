@@ -82,7 +82,9 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2) {
-    if (p->alarm_ticks && p->alarm_next <= ticks) {
+    if (p->alarm_ticks && p->alarm_next <= ticks && p->enable_alarm) {
+      p->enable_alarm = 0; // disable alarm until handler returns
+      // save user trapframe to alarmframe
       p->alarmframe.epc = p->trapframe->epc;
       p->alarmframe.ra = p->trapframe->ra;
       p->alarmframe.sp = p->trapframe->sp; 

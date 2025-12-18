@@ -127,12 +127,14 @@ sys_sigalarm(void)
     p->alarm_ticks = 0;
     p->alarm_handler = 0;
     p->alarm_next = 0;
+    p->enable_alarm = 0;
     return 0;
   } 
 
   p->alarm_ticks = ticks;
   p->alarm_handler = (void (*)(void)) handler;
   p->alarm_next = sys_uptime() + ticks;
+  p->enable_alarm = 1;
 
   return 0;
 }
@@ -142,6 +144,7 @@ sys_sigreturn(void)
   struct proc *p = myproc();
   // Restore saved trapframe from sigtramp
   *(p->trapframe) = p->alarmframe;
+  p->enable_alarm = 1; // re-enable alarm
   
   return 0;
 }
