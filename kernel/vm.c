@@ -299,21 +299,26 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  
+
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       continue;   // page table entry hasn't been allocated
     if((*pte & PTE_V) == 0)
       continue;   // physical page hasn't been allocated
 
-    *pte &= ~PTE_W; // remove write permission for copy-on-write 
-    pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+    if (flags & PTE_W) {
+      flags &= ~PTE_W; // remove write permission for copy-on-write 
+      flags |= PTE_C;  // set copy-on-write flag
+      *pte |= flags; 
+    }
+    pa = PTE2PA(*pte);
 
     if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
       uvmunmap(new, 0, i / PGSIZE, 0);
       return -1;    
     }
+    krefence_inc((void*)pa);
   }
   return 0;
 }
@@ -453,18 +458,47 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   if (va >= p->sz)
     return 0;
   va = PGROUNDDOWN(va);
-  if(ismapped(pagetable, va)) {
+
+  pte_t *pte = walk(pagetable, va, 0);
+  if (pte == 0) {
     return 0;
   }
-  mem = (uint64) kalloc();
-  if(mem == 0)
+
+  if ((*pte & PTE_V) == 0) {
+    mem = (uint64) kalloc();
+    if(mem == 0)
     return 0;
-  memset((void *) mem, 0, PGSIZE);
-  if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
-    kfree((void *)mem);
-    return 0;
+  
+    memset((void *) mem, 0, PGSIZE);
+    if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
+      kfree((void *)mem);
+      return 0;
+    }
+    return mem;
   }
-  return mem;
+
+  if (read != 0 && (*pte & PTE_W) == 0) {
+    // write access to a copy-on-write page
+    if (*pte & PTE_C) {
+      mem = (uint64) kalloc();
+      if(mem == 0)
+        return 0;
+  
+      uint64 pa = PTE2PA(*pte);
+      memmove((void *) mem, (void *) pa, PGSIZE);
+      // update PTE to point to new physical page
+      *pte = PA2PTE(mem) | PTE_V | PTE_U | PTE_R | PTE_W;
+      //sfence_vma();
+      krefence_dec((void*) pa);
+      return mem;
+    } else {
+      // not a copy-on-write page
+      kkill(p->pid);
+      return 0;
+    } 
+  }
+
+  return 0;
 }
 
 int
