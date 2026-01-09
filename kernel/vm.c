@@ -306,12 +306,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((*pte & PTE_V) == 0)
       continue;   // physical page hasn't been allocated
 
-    // if (flags & PTE_W) {
-    //   flags &= ~PTE_W; // remove write permission for copy-on-write 
-    //   flags |= PTE_C;  // set copy-on-write flag
-    //   *pte |= flags; 
-    // }
-
     if (*pte & PTE_W) {
       // mark the parent's page table entry as copy-on-write
       *pte &= ~PTE_W; // remove write permission in parent's PTE 
@@ -475,15 +469,14 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   va = PGROUNDDOWN(va);
 
   pte_t *pte = walk(pagetable, va, 0);
-  if (pte == 0) {
-    return 0;
-  }
 
-  if ((*pte & PTE_V) == 0) {
+  if (pte == 0 || (*pte & PTE_V) == 0) {
     mem = (uint64) kalloc();
-    if(mem == 0)
-    return 0;
-  
+    if(mem == 0) {
+      setkilled(p);
+      return 0;
+    }
+
     memset((void *) mem, 0, PGSIZE);
     if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
       kfree((void *)mem);
@@ -495,8 +488,10 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   if (read == 0 && (*pte & PTE_W) == 0) {
     if (*pte & PTE_C) {
       mem = (uint64) kalloc();
-      if(mem == 0)
+      if(mem == 0) {
+        kkill(p->pid);
         return 0;
+      }
   
       uint64 pa = PTE2PA(*pte);
       memmove((void *) mem, (void *) pa, PGSIZE);
@@ -505,7 +500,7 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
         kfree((void *)mem);
         return 0;
       }
-      kfree((void*) pa);
+
       return mem;
     } else {
       // not a copy-on-write page
