@@ -74,32 +74,28 @@ kfree(void *pa)
     panic("kfree: reference count is negative");
   }
 
-  if (reference_count > 1) {
-    // there are other references, just decrease the count
-    physcial_page_references[index] -= 1;
-  } else {
-    // no other references, free the page
+  if (--physcial_page_references[index] == 0) {
     r->next = kmem.freelist;
     kmem.freelist = r;
-    physcial_page_references[index] = 0;
   }
+  
   release(&page_refrence_lock);
   release(&kmem.lock);
 }
 
 void krefence_dec(void *pa) 
 {
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP )
-    panic("kfree");
+  // if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP )
+  //   panic("kfree");
   
-  int index = ((uint64) pa / PGSIZE); 
-  int reference_count = physcial_page_references[index];
-  if (reference_count < 1) {
-    panic("kfree: reference count can not be negative");
-  }
+  // int index = ((uint64) pa / PGSIZE); 
+  // int reference_count = physcial_page_references[index];
+  // if (reference_count < 1) {
+  //   panic("kfree: reference count can not be negative");
+  // }
 
   acquire(&page_refrence_lock);
-  physcial_page_references[index] -= 1;
+  physcial_page_references[((uint64) pa / PGSIZE)]--;
   release(&page_refrence_lock);
 }
 
@@ -128,16 +124,16 @@ kalloc(void)
 
 void krefence_inc(void *pa) 
 {
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP )
-    panic("kfree");
+  // if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP )
+  //   panic("kfree");
   
-  int index = ((uint64) pa / PGSIZE); 
-  int reference_count = physcial_page_references[index];
-  if (reference_count < 0) {
-    panic("kfree: reference count can not be negative");
-  }
+  // int index = ((uint64) pa / PGSIZE); 
+  // int reference_count = physcial_page_references[index];
+  // if (reference_count < 0) {
+  //   panic("kfree: reference count can not be negative");
+  // }
 
   acquire(&page_refrence_lock);
-  physcial_page_references[index] += 1;
+  physcial_page_references[((uint64) pa / PGSIZE)]++;
   release(&page_refrence_lock);
 }

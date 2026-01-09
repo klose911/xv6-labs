@@ -306,15 +306,23 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((*pte & PTE_V) == 0)
       continue;   // physical page hasn't been allocated
 
+    // if (flags & PTE_W) {
+    //   flags &= ~PTE_W; // remove write permission for copy-on-write 
+    //   flags |= PTE_C;  // set copy-on-write flag
+    //   *pte |= flags; 
+    // }
+
+    if (*pte & PTE_W) {
+      // mark the parent's page table entry as copy-on-write
+      *pte &= ~PTE_W; // remove write permission in parent's PTE 
+      *pte |= PTE_C;  // set copy-on-write flag in parent's PT
+    } 
+    
     flags = PTE_FLAGS(*pte);
-    if (flags & PTE_W) {
-      flags &= ~PTE_W; // remove write permission for copy-on-write 
-      flags |= PTE_C;  // set copy-on-write flag
-      *pte |= flags; 
-    }
     pa = PTE2PA(*pte);
 
     if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+      panic("uvmcopy: mappages");
       uvmunmap(new, 0, i / PGSIZE, 0);
       return -1;    
     }
@@ -359,9 +367,16 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
     pte = walk(pagetable, va0, 0);
     // forbid copyout over read-only user text pages.
-    if((*pte & PTE_W) == 0)
-      return -1;
-      
+    if((*pte & PTE_W) == 0) {
+      if (*pte & PTE_C) {
+        if((pa0 = vmfault(pagetable, va0, 0)) == 0) {
+          return -1;
+        }
+      } else {
+        return -1;
+      }
+    }
+
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -477,8 +492,7 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
     return mem;
   }
 
-  if (read != 0 && (*pte & PTE_W) == 0) {
-    // write access to a copy-on-write page
+  if (read == 0 && (*pte & PTE_W) == 0) {
     if (*pte & PTE_C) {
       mem = (uint64) kalloc();
       if(mem == 0)
@@ -486,10 +500,12 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   
       uint64 pa = PTE2PA(*pte);
       memmove((void *) mem, (void *) pa, PGSIZE);
-      // update PTE to point to new physical page
-      *pte = PA2PTE(mem) | PTE_V | PTE_U | PTE_R | PTE_W;
-      //sfence_vma();
-      krefence_dec((void*) pa);
+      uvmunmap(pagetable, va, 1, 1); // remove old mapping
+      if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
+        kfree((void *)mem);
+        return 0;
+      }
+      kfree((void*) pa);
       return mem;
     } else {
       // not a copy-on-write page
