@@ -41,7 +41,7 @@ freerange(void *pa_start, void *pa_end)
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
-    pg_ref_cnt[PG_REF_IDX(p)] = 1; // initialize reference count to one
+    pg_ref_cnt[PG_REF_IDX(p)] = 0; // initialize reference count to zero
     kfree(p);
   }
 }
@@ -59,12 +59,12 @@ kfree(void *pa)
     panic("kfree");
   
   acquire(&kmem.lock);
-  if (pg_ref_cnt[PG_REF_IDX(pa)] < 1) {
+  if (pg_ref_cnt[PG_REF_IDX(pa)] < 0) {
     release(&kmem.lock);
     panic("kfree: reference count is invalid");
   }
 
-  if (--pg_ref_cnt[PG_REF_IDX(pa)] == 0) {
+  if (--pg_ref_cnt[PG_REF_IDX(pa)] <= 0) {
     // Fill with junk to catch dangling refs.
     memset(pa, 1, PGSIZE);
     r = (struct run*)pa;
@@ -100,8 +100,8 @@ kalloc(void)
   acquire(&kmem.lock);
   r = kmem.freelist;
   if(r) {
-    if (pg_ref_cnt[PG_REF_IDX(r)] != 0) {
-    panic("kalloc: reference count not zero on free list");
+    if (pg_ref_cnt[PG_REF_IDX(r)] > 0) {
+    panic("kalloc: reference count is invalid");
     }
     kmem.freelist = r->next;
     pg_ref_cnt[PG_REF_IDX(r)] = 1;
