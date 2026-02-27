@@ -1,6 +1,7 @@
 //
 // endianness support
 //
+#include "types.h"
 
 static inline uint16 bswaps(uint16 val)
 {

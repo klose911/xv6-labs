@@ -26,4 +26,7 @@ barrier
 *.dSYM
 *.pcap
 TAGS
-
+.cache/
+.clangd
+compile_commands.json
+requirement.org
