@@ -125,13 +125,13 @@ e1000_transmit(char *buf, int len)
 
   acquire(&e1000_lock);
   uint32 tail = regs[E1000_TDT];
-
+  
   if ((tx_ring[tail].status & E1000_TXD_STAT_DD) == 0) {
     release(&e1000_lock);
     return -1; 
   }
 
-  if (!(tx_ring[tail].addr)) {
+  if (tx_ring[tail].addr) {
     kfree((void *) tx_ring[tail].addr);
   }
 
@@ -140,12 +140,10 @@ e1000_transmit(char *buf, int len)
   tx_ring[tail].length = len;
   tx_ring[tail].cmd = E1000_TXD_CMD_RS | E1000_TXD_CMD_EOP;
 
-   __sync_synchronize(); 
-
   regs[E1000_TDT] = (tail + 1) % TX_RING_SIZE;
   __sync_synchronize(); 
   
-  release(&e1000_lock);
+  release(&e1000_lock); 
   return 0;
 }
 
@@ -158,35 +156,31 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver a buf for each packet (using net_rx()).
   //
-  printf("received data packet from e1000 card\n");
+  printf("received data packets from e1000 card\n");
+  //acquire(&e1000_lock); 
+  
+  uint32 idx = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+  struct rx_desc *desc = &rx_ring[idx];  
+  while (desc->status & E1000_RXD_STAT_DD) {
+    net_rx((char *)desc->addr, desc->length);
 
-  acquire(&e1000_lock);
+    desc->addr = (uint64)kalloc();
 
-  while (1) {
+    if (!desc->addr) {
+      panic("e1000 kalloc");
+    }
+
+    desc->status = 0;
     
-    uint32 idx = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
-    if ((rx_ring[idx].status & E1000_TXD_STAT_DD) == 0) {
-      release(&e1000_lock); 
-      return;
-    }
-
-    net_rx((char *)rx_ring[idx].addr, rx_ring[idx].length);
-    rx_ring[idx].addr = (uint64)kalloc();
-    if (!rx_ring[idx].addr) {
-      release(&e1000_lock);
-      panic("e1000");
-    }
-    rx_ring[idx].length = 0;
-    rx_ring[idx].status = 0;
-
-    __sync_synchronize();
-
     regs[E1000_RDT] = idx;
-
     __sync_synchronize();
+    
+
+    idx = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+    desc = &rx_ring[idx];
   }
 
-  release(&e1000_lock);
+  //release(&e1000_lock);  
 }
 
 void

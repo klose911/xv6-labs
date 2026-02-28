@@ -4,8 +4,6 @@
 //
 #include "types.h"
 
-#include "types.h"
-
 /* Registers */
 // 寄存器 
 #define E1000_CTL      (0x00000/4)  /* Device Control Register - RW */ // 设备控制寄存器
