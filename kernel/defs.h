@@ -237,11 +237,37 @@ void pci_init();
  * 
  */
 void e1000_init(uint32 *);
+
+/**
+ * @brief e1000网卡的中断处理函数
+ * 
+ */
 void e1000_intr(void);
+
+/**
+ * @brief 通过e1000网卡发送数据包
+ * 
+ * @param buf 包含以太网帧数据的缓冲区地址
+ * @param len 以太网帧数据的长度，单位为字节
+ * 
+ * @return int 0 成功 -1 失败
+ */
 int e1000_transmit(char *, int);
 
 // net.c
+
+/**
+ * @brief 初始化网络子系统，包括网卡驱动和相关数据结构
+ * 
+ */
 void netinit(void);
+
+/**
+ * @brief 处理接收到的网络数据包，根据以太网帧类型分发给相应的协议处理函数
+ * 
+ * @param buf 包含UDP数据包的缓冲区地址
+ * @param len UDP数据包的长度，单位为字节
+ */
 void net_rx(char *buf, int len);
 
 #endif
