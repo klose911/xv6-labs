@@ -210,3 +210,8 @@ struct dns_data {
   uint32 ttl; // 数据的生存时间，单位为秒，表示数据在 DNS 服务器中缓存的时间长度
   uint16 len; // 数据长度，表示数据字段的字节数
 } __attribute__((packed));
+
+struct inet_port {
+  int port;
+  char *segment_queue[16];
+} __attribute__((packed));

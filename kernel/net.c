@@ -19,10 +19,20 @@ static uint8 host_mac[ETHADDR_LEN] = { 0x52, 0x55, 0x0a, 0x00, 0x02, 0x02 };
 
 static struct spinlock netlock;
 
+struct port {
+  struct port *next;
+};
+
+static struct {
+  struct spinlock portslock;
+  struct port *portlist; 
+} ports; 
+
 void
 netinit(void)
 {
   initlock(&netlock, "netlock");
+  initlock(&ports.portslock, "portslock");
 }
 
 
