@@ -214,4 +214,5 @@ struct dns_data {
 struct inet_port {
   int port;
   char *segment_queue[16];
+  struct inet_port *next; 
 } __attribute__((packed));
