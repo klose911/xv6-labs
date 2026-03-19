@@ -19,15 +19,17 @@ static uint8 host_mac[ETHADDR_LEN] = {0x52, 0x55, 0x0a, 0x00, 0x02, 0x02};
 
 static struct spinlock netlock;
 
-static struct
-{
-  struct inet_port *head;
-} port_list;
+struct inet_port {
+  struct port port; // 端口数据  
+  struct inet_port *next; 
+};
+
+static struct inet_port *port_list_head; // 端口列表头指针
 
 void netinit(void)
 {
   initlock(&netlock, "netlock");
-  port_list.head = 0;
+  port_list_head = 0;
 }
 
 //
@@ -48,9 +50,9 @@ sys_bind(void)
     panic("sys_bind: invalid port number");
 
   acquire(&netlock); 
-  struct inet_port *p = port_list.head;
+  struct inet_port *p = port_list_head;
   while (p) {
-    if (p->port == port) {    
+    if (p->port.number == port) {    
       release(&netlock); 
       return -1;  // 端口已经被绑定了，返回错误            
     }
@@ -63,16 +65,29 @@ sys_bind(void)
       return -1;               
     }
 
-    new_port->port = port;  
-    memset(new_port->segment_queue, 0, sizeof(new_port->segment_queue)); 
-    new_port->next = port_list.head; 
-    port_list.head = new_port;
+    new_port->port.number = port;  
+    new_port->port.head = 0; // 初始化 segment_queue 的头部索引，指向下一个要处理的数据包
+    new_port->port.tail = 0; // 初始化 segment_queue 的尾部索引
+    memset(new_port->port.segment_queue, 0, sizeof(new_port->port.segment_queue)); 
+    new_port->next = port_list_head; 
+    port_list_head = new_port;
     
     release(&netlock); 
     return 0;
   }
 
   return -1; 
+}
+
+static struct inet_port *find_port(int port) {
+  struct inet_port *p = port_list_head;
+  while (p) {
+    if (p->port.number == port) {
+      return p; // 端口已经被绑定了
+    }
+    p = p->next;
+  }
+  return 0; // 端口没有被绑定
 }
   //
   // unbind(int port)
@@ -110,6 +125,62 @@ sys_bind(void)
     //
     // Your code here.
     //
+    struct proc *p = myproc(); 
+    int dport;
+    uint64 srcaddr;
+    uint64 sportaddr;
+    uint64 bufaddr;
+    int maxlen;
+
+    argint(0, &dport);    
+    argaddr(1, &srcaddr);      
+    argaddr(2, &sportaddr);    
+    argaddr(3, &bufaddr); 
+    argint(4, &maxlen);      
+    
+    acquire(&netlock); 
+
+    struct inet_port *port = find_port(dport); 
+    if (!port) { 
+      release(&netlock); 
+      return -1; // 目的端口没有被绑定，返回错误
+    } 
+
+    while (port->port.head == port->port.tail) { 
+      sleep(&port->port, &netlock); // 等待直到有数据包到达
+    } 
+
+    if (port->port.head != port->port.tail) { 
+      char *packet = port->port.segment_queue[port->port.head]; 
+      port->port.head = (port->port.head + 1) % PORT_MAX_QUEUE; 
+
+      struct eth *eth = (struct eth *) packet; 
+      struct ip *ip = (struct ip *)(eth + 1); 
+      struct udp *udp = (struct udp *)(ip + 1); 
+
+      uint32 src_ip = ntohl(ip->ip_src); 
+      uint16 src_port = ntohs(udp->sport); 
+      int payload_len = ntohs(udp->ulen) - sizeof(struct udp); 
+      if (payload_len > maxlen) {
+        kfree(packet); // 数据包太大，丢弃
+        release(&netlock);
+        return -1;
+      }
+
+      if (copyout(p->pagetable, srcaddr, (char *)&src_ip, sizeof(src_ip)) < 0 ||
+          copyout(p->pagetable, sportaddr, (char *)&src_port, sizeof(src_port)) < 0 ||
+          copyout(p->pagetable, bufaddr, (char *)(udp + 1), payload_len) < 0) {
+        kfree(packet); // 拷贝失败，丢弃数据包
+        release(&netlock);
+        return -1;
+      }
+
+      kfree(packet); // 处理完毕，释放数据包的内存
+      release(&netlock);
+      return payload_len; // 返回复制到用户空间的字节数
+    }
+
+    release(&netlock);
     return -1;
   }
 
@@ -255,6 +326,31 @@ sys_bind(void)
     //
     // Your code here.
     //
+    acquire(&netlock); 
+
+    struct eth *ineth = (struct eth *) buf;       // 收到的以太网帧头部
+    struct ip *ip = (struct ip *)(ineth + 1);     // 收到的IP包头部 紧接着以太网头部
+    if (ip->ip_p != IPPROTO_UDP) { // 只处理 UDP 包
+      kfree(buf); // 不是 UDP 包，丢弃
+      release(&netlock);
+      return;
+    } 
+    
+    struct udp *udp = (struct udp *)(ip + 1);    // 收到的UDP包头部 紧接着IP头部
+    uint16 dport = ntohs(udp->dport); // 目的端口号
+    struct inet_port *p = find_port(dport); // 查找目的端口号对应的 inet_port 结构体
+    // 目的端口没有被绑定，或者端口的 segment_queue 已经满了 
+    if (p == 0 || (p->port.tail + 1) % PORT_MAX_QUEUE == p->port.head) { 
+      kfree(buf); // 丢弃
+      release(&netlock);
+      return;
+    }
+    
+    p->port.segment_queue[p->port.tail] = buf; // 把收到的数据包放入目的端口的 segment_queue 中
+    p->port.tail = (p->port.tail + 1) % PORT_MAX_QUEUE; // 更新 segment_queue 的尾部索引
+    wakeup(&p->port); // 唤醒等待这个端口的进程 
+    
+    release(&netlock);
   }
 
   //

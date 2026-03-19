@@ -211,8 +211,11 @@ struct dns_data {
   uint16 len; // 数据长度，表示数据字段的字节数
 } __attribute__((packed));
 
-struct inet_port {
-  int port;
-  char *segment_queue[16];
-  struct inet_port *next; 
+#define PORT_MAX_QUEUE 16 // 每个端口的最大数据包队列长度 
+
+struct port {
+  int number; // 端口号
+  char *segment_queue[PORT_MAX_QUEUE]; // 存储数据包的队列，最多可以存储16个数据包
+  int head; // 队列头部索引，指向下一个要处理的数据包
+  int tail; // 队列尾部索引，指向下一个要插入数据包的位置
 } __attribute__((packed));
