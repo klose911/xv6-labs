@@ -125,8 +125,8 @@ e1000_transmit(char *buf, int len)
 
   acquire(&e1000_lock);
   uint32 tail = regs[E1000_TDT];
-  
-  if ((tx_ring[tail].status & E1000_TXD_STAT_DD) == 0) {
+  if (!(tx_ring[tail].status & E1000_TXD_STAT_DD)) {
+    printf("e1000_transmit: no descriptor available\n");
     release(&e1000_lock);
     return -1; 
   }

@@ -150,8 +150,8 @@ static struct inet_port *find_port(int port) {
       sleep(&port->port, &netlock); // 等待直到有数据包到达
     } 
 
-    if (port->port.head != port->port.tail) { 
       char *packet = port->port.segment_queue[port->port.head]; 
+      port->port.segment_queue[port->port.head] = 0; // 清空已处理的数据包指针
       port->port.head = (port->port.head + 1) % PORT_MAX_QUEUE; 
 
       struct eth *eth = (struct eth *) packet; 
@@ -162,9 +162,7 @@ static struct inet_port *find_port(int port) {
       uint16 src_port = ntohs(udp->sport); 
       int payload_len = ntohs(udp->ulen) - sizeof(struct udp); 
       if (payload_len > maxlen) {
-        kfree(packet); // 数据包太大，丢弃
-        release(&netlock);
-        return -1;
+        payload_len = maxlen; // 如果数据包的负载长度超过用户缓冲区的最大长度，则截断数据包
       }
 
       if (copyout(p->pagetable, srcaddr, (char *)&src_ip, sizeof(src_ip)) < 0 ||
@@ -176,12 +174,11 @@ static struct inet_port *find_port(int port) {
       }
 
       kfree(packet); // 处理完毕，释放数据包的内存
+      printf("sys_recv: received packet from %d.%d.%d.%d:%d, payload length %d\n", 
+             (src_ip >> 24) & 0xFF, (src_ip >> 16) & 0xFF, (src_ip >> 8) & 0xFF, src_ip & 0xFF, 
+             src_port, payload_len);  
       release(&netlock);
       return payload_len; // 返回复制到用户空间的字节数
-    }
-
-    release(&netlock);
-    return -1;
   }
 
   // This code is lifted from FreeBSD's ping.c, and is copyright by the Regents
@@ -310,7 +307,7 @@ static struct inet_port *find_port(int port) {
     }
 
     e1000_transmit(buf, total); // 发送UDP包
-
+    
     return 0; // 返回0 表示成功
   }
 
@@ -342,15 +339,16 @@ static struct inet_port *find_port(int port) {
     // 目的端口没有被绑定，或者端口的 segment_queue 已经满了 
     if (p == 0 || (p->port.tail + 1) % PORT_MAX_QUEUE == p->port.head) { 
       kfree(buf); // 丢弃
+      printf("ip_rx: no port for dport %d, or port queue full\n", dport);
       release(&netlock);
       return;
     }
     
     p->port.segment_queue[p->port.tail] = buf; // 把收到的数据包放入目的端口的 segment_queue 中
-    p->port.tail = (p->port.tail + 1) % PORT_MAX_QUEUE; // 更新 segment_queue 的尾部索引
-    wakeup(&p->port); // 唤醒等待这个端口的进程 
-    
+    p->port.tail = (p->port.tail + 1) % PORT_MAX_QUEUE; // 更新 segment_queue 的尾部索引    
     release(&netlock);
+    
+    wakeup(&p->port); // 唤醒等待这个端口的进程 
   }
 
   //
