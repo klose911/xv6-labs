@@ -99,7 +99,10 @@ struct run *steal(int cpu_id) {
     panic("steal");
   }
 
-  for (i = 0; i < NCPU; ++i) {
+  for (i = 1; i < NCPU; ++i) {
+    if (++c == NCPU) {
+      c = 0;
+    }
     if (i != cpu_id) {
       acquire(&kmems[c].lock);
       if (kmems[c].freelist) {
