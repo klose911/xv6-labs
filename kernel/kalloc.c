@@ -28,7 +28,7 @@ struct {
 void
 kinit()
 {
-  for (int i = 0; i < NCPU; i++) {
+  for (int i = 0; i < 4; i++) {
     snprintf(kmems[i].lockname, 8, "kmem_%d", i);
     initlock(&kmems[i].lock, kmems[i].lockname);
   }
@@ -71,42 +71,16 @@ kfree(void *pa)
   release(&kmems[i].lock);
 }
 
-// static struct run* steal(int cpu_id)
-// {
-//   struct run *r; 
-//   for (int i = 0; i < NCPU; i++) {
-//     if (i != cpu_id) {
-//       acquire(&kmems[i].lock); 
-//       r = kmems[i].freelist; 
-//       if (r) {
-//         kmems[i].freelist = r->next;
-//         release(&kmems[i].lock); 
-//         return r; 
-//       }
-//       release(&kmems[i].lock); 
-//     }
-//   }
-
-//   return 0; 
-// }
-
 // steal half page from other cpu's freelist 
 struct run *steal(int cpu_id) {
   int i;
-  int c = cpu_id;
   struct run *fast, *slow, *head;
-  if(cpu_id != cpuid()) {
-    panic("steal");
-  }
 
-  for (i = 1; i < NCPU; ++i) {
-    if (++c == NCPU) {
-      c = 0;
-    }
+  for (i = 0; i < 4; i++) {
     if (i != cpu_id) {
-      acquire(&kmems[c].lock);
-      if (kmems[c].freelist) {
-        slow = head = kmems[c].freelist;
+      acquire(&kmems[i].lock);
+      if (kmems[i].freelist) {
+        slow = head = kmems[i].freelist;
         fast = slow->next;
         while (fast) {
           fast = fast->next;
@@ -115,12 +89,12 @@ struct run *steal(int cpu_id) {
             fast = fast->next;
           }
         }
-        kmems[c].freelist = slow->next;
-        release(&kmems[c].lock);
+        kmems[i].freelist = slow->next;
+        release(&kmems[i].lock);
         slow->next = 0;
         return head;
       }
-      release(&kmems[c].lock);
+      release(&kmems[i].lock);
     }
   }
   return 0;
@@ -144,14 +118,12 @@ kalloc(void)
     kmems[i].freelist = r->next;
   release(&kmems[i].lock);
 
-  if (!r) {
-      r = steal(i);
-      if (r) {
-        acquire(&kmems[i].lock);
-        kmems[i].freelist = r->next;
-        release(&kmems[i].lock); 
-      }
+  if (!r && (r = steal(i))) {
+    acquire(&kmems[i].lock);
+    kmems[i].freelist = r->next;  
+    release(&kmems[i].lock);
   }
+
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
