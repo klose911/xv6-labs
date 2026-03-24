@@ -22,7 +22,7 @@ struct {
   struct spinlock lock; 
   struct run *freelist;
   char lockname[8];
-} kmems[NCPU];
+} kmems[4];
 
 
 void
@@ -40,7 +40,7 @@ freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) 
     kfree(p);
 }
 
@@ -64,35 +64,26 @@ kfree(void *pa)
   push_off();
   int i = cpuid();
   pop_off();
-  
+
   acquire(&kmems[i].lock);
   r->next = kmems[i].freelist;
   kmems[i].freelist = r;
   release(&kmems[i].lock);
 }
 
-// steal half page from other cpu's freelist 
 struct run *steal(int cpu_id) {
   int i;
-  struct run *fast, *slow, *head;
+  struct run *r; 
 
-  for (i = 0; i < 4; i++) {
+  for (i =0; i < 4; i++) {
     if (i != cpu_id) {
       acquire(&kmems[i].lock);
-      if (kmems[i].freelist) {
-        slow = head = kmems[i].freelist;
-        fast = slow->next;
-        while (fast) {
-          fast = fast->next;
-          if (fast) {
-            slow = slow->next;
-            fast = fast->next;
-          }
-        }
-        kmems[i].freelist = slow->next;
+      r = kmems[i].freelist;
+      if (r) {
+        kmems[i].freelist = r->next;
+        r->next = 0;
         release(&kmems[i].lock);
-        slow->next = 0;
-        return head;
+        return r;
       }
       release(&kmems[i].lock);
     }
@@ -118,12 +109,9 @@ kalloc(void)
     kmems[i].freelist = r->next;
   release(&kmems[i].lock);
 
-  if (!r && (r = steal(i))) {
-    acquire(&kmems[i].lock);
-    kmems[i].freelist = r->next;  
-    release(&kmems[i].lock);
-  }
-
+  if (!r) {
+    r = steal(i);
+  } 
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
