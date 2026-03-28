@@ -121,12 +121,47 @@ void            push_off(void);
 void            pop_off(void);
 int             atomic_read4(int *addr);
 #ifdef LAB_LOCK
+/**
+ * @brief 释放锁，并将其从系统中移除
+ * 
+ */
 void            freelock(struct spinlock*);
+/**
+ * @brief 在locks数组中找到一个空位来存储新锁
+ * 
+ * @param lk 新锁
+ */
 void            initrwlock(struct rwspinlock*);
+
+/**
+ * @brief 获取读锁 
+ * @param rwlk 读写锁
+ * 
+ */
 void            read_acquire(struct rwspinlock*);
+
+/**
+ * @brief 释放读锁
+ * @param rwlk 读写锁
+ * 
+ */
 void            read_release(struct rwspinlock*);
+
+/**
+ * @brief 获取写锁
+ * @param rwlk 读写锁
+ * 
+ */
 void            write_acquire(struct rwspinlock*);
+
+/**
+ * @brief 释放写锁
+ * @param rwlk 读写锁
+ * 
+ */
 void            write_release(struct rwspinlock*);
+
+// For testing: track the number of calls to acquire()
 uint64          sys_rwlktest(void);
 #endif
 
