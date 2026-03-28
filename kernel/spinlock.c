@@ -185,6 +185,9 @@ void
 initrwlock(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
+  rwlk->reader = 0;
+  rwlk->writer = 0;
+  rwlk->waiting_writer = 0;   
   initlock(&rwlk->l, "rwlk");
 }
 
