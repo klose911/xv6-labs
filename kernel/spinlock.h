@@ -23,9 +23,10 @@ struct rwspinlock {
   // 2. write acquire: reader == 0 && writer == 0
   // 3. read release: reader > 0; 
   // 4. writer realse: writer > 0;  
-  uint reader;
-  uint writer;
-  uint waiting_writer;  
-  struct spinlock l;
+  // uint reader;
+  // uint writer;
+  // struct spinlock l;
+  int state; 
+  uint waiting_writer;
 };
 #endif

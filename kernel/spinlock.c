@@ -129,24 +129,35 @@ static void
 read_acquire_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  acquire(&rwlk->l);
-  while (rwlk->writer || rwlk->waiting_writer)
-    sleep(&rwlk, &rwlk->l);
+  while (1) {
+    int s = __atomic_load_n(&rwlk->state, __ATOMIC_SEQ_CST);
 
-  rwlk->reader++;
-  wakeup(&rwlk);
+    if (s == -1 || __atomic_load_n(&rwlk->waiting_writer, __ATOMIC_SEQ_CST) > 0)
+        continue;
+
+    __atomic_fetch_add(&rwlk->state, 1, __ATOMIC_SEQ_CST); 
+    __sync_synchronize();
+    break;
+  }
 }
 
 static void
 read_release_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  while (!rwlk->reader)
-    sleep(&rwlk, &rwlk->l);
+  // while (!rwlk->reader)
+  //   sleep(&rwlk, &rwlk->l);
 
-  rwlk->reader--;
-  wakeup(&rwlk);
-  release(&rwlk->l);
+  // rwlk->reader--;
+  // wakeup(rwlk);
+  // release(&rwlk->l);
+  int s = __atomic_load_n(&rwlk->state, __ATOMIC_SEQ_CST);
+
+  if (s <= 0)
+    panic("read_release_inner");
+
+  __atomic_fetch_sub(&rwlk->state, 1, __ATOMIC_SEQ_CST);
+  __sync_synchronize();  
 }
 
 static void
@@ -154,15 +165,25 @@ write_acquire_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
     
-  __sync_fetch_and_add(&(rwlk->waiting_writer), 1);
-  acquire(&rwlk->l);
-  while (rwlk->reader > 0 || rwlk->writer > 0)
-    sleep(&rwlk, &rwlk->l);
+  // __sync_fetch_and_add(&(rwlk->waiting_writer), 1);
+  // acquire(&rwlk->l);
+  // while (rwlk->reader > 0 || rwlk->writer > 0)
+  //   sleep(rwlk, &rwlk->l);
 
-  rwlk->writer++;
-  rwlk->waiting_writer--;
+  // rwlk->writer++;
+  // rwlk->waiting_writer--;
 
-  wakeup(&rwlk);
+  // wakeup(rwlk);
+  __atomic_fetch_add(&rwlk->waiting_writer, 1, __ATOMIC_SEQ_CST);
+  while (1) {
+    int s = __atomic_load_n(&rwlk->state, __ATOMIC_SEQ_CST);
+    if (s != 0) // 如果当前有读者或写者持有锁，继续自旋等待
+      continue; 
+
+    __atomic_store_n(&rwlk->state, -1, __ATOMIC_SEQ_CST); // 将state设置为-1，表示写者持有锁
+    __sync_synchronize();
+    break; 
+  }
 }
 
 static void
@@ -170,12 +191,20 @@ write_release_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
 
-  while (rwlk->writer == 0)
-    sleep(&rwlk, &rwlk->l);
+  // while (rwlk->writer == 0)
+  //   sleep(&rwlk, &rwlk->l);
 
-  rwlk->writer--;
-  wakeup(&rwlk);
-  release(&rwlk->l);
+  // rwlk->writer--;
+  // wakeup(rwlk);
+  // release(&rwlk->l);
+
+  int s = __atomic_load_n(&rwlk->state, __ATOMIC_SEQ_CST);
+  if (s != -1)
+    panic("write_release_inner"); 
+  
+  __atomic_store_n(&rwlk->state, 0, __ATOMIC_SEQ_CST);
+  __atomic_fetch_sub(&rwlk->waiting_writer, 1, __ATOMIC_SEQ_CST);
+  __sync_synchronize();
 }
 
 void
@@ -210,10 +239,10 @@ void
 initrwlock(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  rwlk->reader = 0;
-  rwlk->writer = 0;
+  // rwlk->reader = 0;
+  rwlk->state = 0;
   rwlk->waiting_writer = 0;   
-  initlock(&rwlk->l, "rwlk");
+  //initlock(&rwlk->l, "rwlk");
 }
 
 // Test rwspinlock implementation.
