@@ -129,23 +129,28 @@ static void
 read_acquire_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  acquire(&rwlk->l);
-  while (rwlk->writer || rwlk->waiting_writer)
-    sleep(&rwlk, &rwlk->l);
+  while (1) {
+    acquire(&rwlk->l);
 
-  rwlk->reader++;
-  wakeup(&rwlk);
+    if (rwlk->writer == 0 && rwlk->waiting_writer == 0) {
+        rwlk->reader++;
+        release(&rwlk->l);
+        break;
+    }
+
+    release(&rwlk->l);
+  }
 }
 
 static void
 read_release_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  while (!rwlk->reader)
-    sleep(&rwlk, &rwlk->l);
-
+  acquire(&rwlk->l);
+  if (rwlk->reader <= 0) 
+    panic("read release inner");
+  
   rwlk->reader--;
-  wakeup(&rwlk);
   release(&rwlk->l);
 }
 
@@ -153,28 +158,32 @@ static void
 write_acquire_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-    
-  __sync_fetch_and_add(&(rwlk->waiting_writer), 1);
   acquire(&rwlk->l);
-  while (rwlk->reader > 0 || rwlk->writer > 0)
-    sleep(&rwlk, &rwlk->l);
+  rwlk->waiting_writer++;
+  release(&rwlk->l);
 
-  rwlk->writer++;
-  rwlk->waiting_writer--;
+  while (1) {
+    acquire(&rwlk->l);
 
-  wakeup(&rwlk);
+    if (rwlk->writer == 0 && rwlk->reader == 0) {
+      rwlk->writer = 1;
+      rwlk->waiting_writer--;
+      release(&rwlk->l);
+      break;
+    }
+
+    release(&rwlk->l);
+  }
 }
 
 static void
 write_release_inner(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-
-  while (rwlk->writer == 0)
-    sleep(&rwlk, &rwlk->l);
-
-  rwlk->writer--;
-  wakeup(&rwlk);
+  acquire(&rwlk->l);
+  if (rwlk->writer <= 0) 
+    panic("write release inner");
+  rwlk->writer = 0;
   release(&rwlk->l);
 }
 
