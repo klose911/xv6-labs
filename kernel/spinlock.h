@@ -17,15 +17,7 @@ struct spinlock {
 // Reader-writer lock.
 struct rwspinlock {
   // Replace this with your implementation.
-
-  // condition:
-  // 1. read acquire: writer == 0 && waiting_writer == 0
-  // 2. write acquire: reader == 0 && writer == 0
-  // 3. read release: reader > 0; 
-  // 4. writer realse: writer > 0;  
-  volatile uint reader;
-  volatile uint writer;
-  volatile uint waiting_writer;  
-  struct spinlock l;
+  int state; // state > 0: number of readers holding the lock; state == 0: lock is free; state == -1: a writer is holding the lock
+  uint waiting_writer; // Number of writers waiting to acquire the lock
 };
 #endif
