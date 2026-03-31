@@ -219,7 +219,6 @@ void
 initrwlock(struct rwspinlock *rwlk)
 {
   // Replace this with your implementation.
-  // rwlk->reader = 0;
   rwlk->reader = 0;
   rwlk->writer = 0;
   rwlk->waiting_writer = 0;   
@@ -445,6 +444,7 @@ sys_rwlktest()
 
     if (id == 0 || id == 1) {
       write_acquire(&l); // 获取写锁l
+      writer_count++; // 增加writer_count，表示有一个写者正在等待获取锁
       delay();
       write_release(&l); // 释放写锁l
     }
