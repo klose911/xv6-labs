@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-04-04 Sat 13:12 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>&lrm;</title>
+<meta name="author" content="Wu, Shanliang" />
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org3a1d54e">1. Symbol Links</a></li>
+<li><a href="#org48abb7b">2. Job</a></li>
+<li><a href="#orgee42025">3. Hints</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org3a1d54e" class="outline-2">
+<h2 id="org3a1d54e"><span class="section-number-2">1.</span> Symbol Links</h2>
+<div class="outline-text-2" id="text-1">
+<pre class="example" id="org1a95743">
+In this exercise you will add symbolic links to xv6
+</pre>
+<p>
+Symbolic links (or soft links) refer to a linked file or directory by pathname
+</p>
+<ul class="org-ul">
+<li>when a symbolic link is opened, the kernel looks up the linked-to name</li>
+</ul>
+
+<pre class="example" id="org3f442b5">
+Symbolic links resemble hard links
+
+but hard links are restricted to pointing to files on the same disk, cannot refer to directories
+
+are tied to a specific target i-node rather than (as with symbolic links) referring to whatever happens at the moment to be at the target name, if anything
+</pre>
+
+<p>
+Implementing this system call is a good exercise to understand how pathname lookup works.
+</p>
+
+<pre class="example" id="org22d5910">
+You do not have to handle symbolic links to directories for this lab
+</pre>
+
+<p>
+the only system call that needs to know how to follow symbolic links is <b>open()</b>
+</p>
+</div>
+</div>
+<div id="outline-container-org48abb7b" class="outline-2">
+<h2 id="org48abb7b"><span class="section-number-2">2.</span> Job</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+You will implement the <span class="underline">symlink(char *target, char *path)</span> system call, which <b>creates</b> a new symbolic link at path that refers to file named by target
+</p>
+<pre class="example" id="org9b1cab4">
+For further information, see the man page symlink
+</pre>
+
+<p>
+To test, add <span class="underline">symlinktest</span> to the Makefile and run it. Your solution is complete when the tests produce the following output (including usertests succeeding).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">$ symlinktest
+Start: test symlinks
+test symlinks: ok
+Start: test concurrent symlinks
+test concurrent symlinks: ok
+$ usertests -q
+...
+ALL TESTS PASSED
+$ 
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgee42025" class="outline-2">
+<h2 id="orgee42025"><span class="section-number-2">3.</span> Hints</h2>
+<div class="outline-text-2" id="text-3">
+<ol class="org-ol">
+<li>First, create a <span class="underline">new system call number</span> for symlink, add an entry to <span class="underline">user/usys.pl</span> ,  <span class="underline">user/user.h</span> , and implement an empty <span class="underline">sys<sub>symlink</sub></span> in <span class="underline">kernel/sysfile.c</span></li>
+<li>Add a new file type <b>T<sub>SYMLINK</sub></b> to <span class="underline">kernel/stat.h</span> to represent a symbolic link</li>
+<li>Add a new flag to <span class="underline">kernel/fcntl.h</span> , <b>O<sub>NOFOLLOW</sub></b>, that can be used with the <span class="underline">open system call</span>. Note
+<ul class="org-ul">
+<li><p>
+that flags passed to open are combined using a <span class="underline">bitwise OR</span> operator, so your new flag should <b>not overlap with any existing flags</b>
+</p>
+<pre class="example" id="org4377cb6">
+This will let you compile user/symlinktest.c once you add it to the Makefile
+</pre></li>
+</ul></li>
+<li>Implement the <span class="underline">symlink(target, path)</span> system call to create a new symbolic link at path that refers to target
+<ul class="org-ul">
+<li>Note <b>that target does not need to exist</b> for the system call to succeed</li>
+<li><p>
+You will need to choose somewhere to store the target path of a symbolic link
+</p>
+<pre class="example" id="org2c8591a">
+for example, in the inode's data blocks
+</pre></li>
+<li>symlink should return an integer representing <span class="underline">success (0)</span> or <span class="underline">failure (-1)</span> similar to link and unlink</li>
+</ul></li>
+<li>Modify the <span class="underline">open</span> system call to handle the case where the path refers to a symbolic link
+<ul class="org-ul">
+<li>If the file does not exist, open must fail</li>
+<li>When a process specifies O<sub>NOFOLLOW</sub> in the flags to open, open should open the symlink (and not follow the symbolic link)</li>
+</ul></li>
+<li>If the linked file is also a symbolic link, you must <b>recursively</b> follow it until a non-link file is reached
+<ul class="org-ul">
+<li><p>
+If the links form a cycle, you must return an error code
+</p>
+<pre class="example" id="orgd631752">
+You may approximate this by returning an error code if the depth of links reaches some threshold (e.g., 10)
+</pre></li>
+</ul></li>
+<li><p>
+Other system calls (e.g., link and unlink) <b>must not follow</b> symbolic links
+</p>
+<pre class="example" id="orgedfd121">
+these system calls operate on the symbolic link itself
+</pre></li>
+</ol>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Wu, Shanliang</p>
+<p class="date">Created: 2026-04-04 Sat 13:12</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+* Symbol Links 
+#+begin_example
+In this exercise you will add symbolic links to xv6
+#+end_example
+Symbolic links (or soft links) refer to a linked file or directory by pathname
++ when a symbolic link is opened, the kernel looks up the linked-to name
+
+#+begin_example
+  Symbolic links resemble hard links
+
+  but hard links are restricted to pointing to files on the same disk, cannot refer to directories
+
+  are tied to a specific target i-node rather than (as with symbolic links) referring to whatever happens at the moment to be at the target name, if anything
+#+end_example
+
+Implementing this system call is a good exercise to understand how pathname lookup works.
+
+#+begin_example
+You do not have to handle symbolic links to directories for this lab
+#+end_example
+
+the only system call that needs to know how to follow symbolic links is *open()*
+
+* Job
+You will implement the _symlink(char *target, char *path)_ system call, which *creates* a new symbolic link at path that refers to file named by target
+#+begin_example
+For further information, see the man page symlink
+#+end_example
+
+To test, add _symlinktest_ to the Makefile and run it. Your solution is complete when the tests produce the following output (including usertests succeeding).
+
+#+begin_src sh 
+  $ symlinktest
+  Start: test symlinks
+  test symlinks: ok
+  Start: test concurrent symlinks
+  test concurrent symlinks: ok
+  $ usertests -q
+  ...
+  ALL TESTS PASSED
+  $ 
+#+end_src
+
+* Hints
+1. First, create a _new system call number_ for symlink, add an entry to _user/usys.pl_ ,  _user/user.h_ , and implement an empty _sys_symlink_ in _kernel/sysfile.c_
+2. Add a new file type *T_SYMLINK* to _kernel/stat.h_ to represent a symbolic link
+3. Add a new flag to _kernel/fcntl.h_ , *O_NOFOLLOW*, that can be used with the _open system call_. Note
+   + that flags passed to open are combined using a _bitwise OR_ operator, so your new flag should *not overlap with any existing flags*
+     #+begin_example
+       This will let you compile user/symlinktest.c once you add it to the Makefile
+     #+end_example
+4. Implement the _symlink(target, path)_ system call to create a new symbolic link at path that refers to target
+   + Note *that target does not need to exist* for the system call to succeed
+   + You will need to choose somewhere to store the target path of a symbolic link
+     #+begin_example
+       for example, in the inode's data blocks
+     #+end_example
+   + symlink should return an integer representing _success (0)_ or _failure (-1)_ similar to link and unlink
+5. Modify the _open_ system call to handle the case where the path refers to a symbolic link
+   + If the file does not exist, open must fail
+   + When a process specifies O_NOFOLLOW in the flags to open, open should open the symlink (and not follow the symbolic link)
+6. If the linked file is also a symbolic link, you must *recursively* follow it until a non-link file is reached
+   + If the links form a cycle, you must return an error code
+     #+begin_example
+       You may approximate this by returning an error code if the depth of links reaches some threshold (e.g., 10)
+     #+end_example
+7. Other system calls (e.g., link and unlink) *must not follow* symbolic links
+   #+begin_example
+     these system calls operate on the symbolic link itself
+   #+end_example
