@@ -3,7 +3,6 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-04-04 Sat 13:12 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>&lrm;</title>
@@ -200,16 +199,16 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org3a1d54e">1. Symbol Links</a></li>
-<li><a href="#org48abb7b">2. Job</a></li>
-<li><a href="#orgee42025">3. Hints</a></li>
+<li><a href="#org42c431a">Symbol Links</a></li>
+<li><a href="#orgfa686e3">Job</a></li>
+<li><a href="#org5d662b4">Hints</a></li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org3a1d54e" class="outline-2">
-<h2 id="org3a1d54e"><span class="section-number-2">1.</span> Symbol Links</h2>
-<div class="outline-text-2" id="text-1">
-<pre class="example" id="org1a95743">
+<div id="outline-container-org42c431a" class="outline-2">
+<h2 id="org42c431a">Symbol Links</h2>
+<div class="outline-text-2" id="text-org42c431a">
+<pre class="example" id="orgb0a71a0">
 In this exercise you will add symbolic links to xv6
 </pre>
 <p>
@@ -219,7 +218,7 @@ Symbolic links (or soft links) refer to a linked file or directory by pathname
 <li>when a symbolic link is opened, the kernel looks up the linked-to name</li>
 </ul>
 
-<pre class="example" id="org3f442b5">
+<pre class="example" id="org7b93924">
 Symbolic links resemble hard links
 
 but hard links are restricted to pointing to files on the same disk, cannot refer to directories
@@ -231,7 +230,7 @@ are tied to a specific target i-node rather than (as with symbolic links) referr
 Implementing this system call is a good exercise to understand how pathname lookup works.
 </p>
 
-<pre class="example" id="org22d5910">
+<pre class="example" id="org276e116">
 You do not have to handle symbolic links to directories for this lab
 </pre>
 
@@ -240,13 +239,13 @@ the only system call that needs to know how to follow symbolic links is <b>open(
 </p>
 </div>
 </div>
-<div id="outline-container-org48abb7b" class="outline-2">
-<h2 id="org48abb7b"><span class="section-number-2">2.</span> Job</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-orgfa686e3" class="outline-2">
+<h2 id="orgfa686e3">Job</h2>
+<div class="outline-text-2" id="text-orgfa686e3">
 <p>
 You will implement the <span class="underline">symlink(char *target, char *path)</span> system call, which <b>creates</b> a new symbolic link at path that refers to file named by target
 </p>
-<pre class="example" id="org9b1cab4">
+<pre class="example" id="org99e0d0f">
 For further information, see the man page symlink
 </pre>
 
@@ -268,18 +267,18 @@ $
 </div>
 </div>
 </div>
-<div id="outline-container-orgee42025" class="outline-2">
-<h2 id="orgee42025"><span class="section-number-2">3.</span> Hints</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org5d662b4" class="outline-2">
+<h2 id="org5d662b4">Hints</h2>
+<div class="outline-text-2" id="text-org5d662b4">
 <ol class="org-ol">
-<li>First, create a <span class="underline">new system call number</span> for symlink, add an entry to <span class="underline">user/usys.pl</span> ,  <span class="underline">user/user.h</span> , and implement an empty <span class="underline">sys<sub>symlink</sub></span> in <span class="underline">kernel/sysfile.c</span></li>
-<li>Add a new file type <b>T<sub>SYMLINK</sub></b> to <span class="underline">kernel/stat.h</span> to represent a symbolic link</li>
-<li>Add a new flag to <span class="underline">kernel/fcntl.h</span> , <b>O<sub>NOFOLLOW</sub></b>, that can be used with the <span class="underline">open system call</span>. Note
+<li>First, create a <span class="underline">new system call number</span> for symlink, add an entry to <span class="underline">user/usys.pl</span> ,  <span class="underline">user/user.h</span> , and implement an empty <span class="underline">sys_symlink</span> in <span class="underline">kernel/sysfile.c</span></li>
+<li>Add a new file type <b>T_SYMLINK</b> to <span class="underline">kernel/stat.h</span> to represent a symbolic link</li>
+<li>Add a new flag to <span class="underline">kernel/fcntl.h</span> , <b>O_NOFOLLOW</b>, that can be used with the <span class="underline">open system call</span>. Note
 <ul class="org-ul">
 <li><p>
 that flags passed to open are combined using a <span class="underline">bitwise OR</span> operator, so your new flag should <b>not overlap with any existing flags</b>
 </p>
-<pre class="example" id="org4377cb6">
+<pre class="example" id="org4bd4cc3">
 This will let you compile user/symlinktest.c once you add it to the Makefile
 </pre></li>
 </ul></li>
@@ -289,7 +288,7 @@ This will let you compile user/symlinktest.c once you add it to the Makefile
 <li><p>
 You will need to choose somewhere to store the target path of a symbolic link
 </p>
-<pre class="example" id="org2c8591a">
+<pre class="example" id="org2157a11">
 for example, in the inode's data blocks
 </pre></li>
 <li>symlink should return an integer representing <span class="underline">success (0)</span> or <span class="underline">failure (-1)</span> similar to link and unlink</li>
@@ -297,21 +296,21 @@ for example, in the inode's data blocks
 <li>Modify the <span class="underline">open</span> system call to handle the case where the path refers to a symbolic link
 <ul class="org-ul">
 <li>If the file does not exist, open must fail</li>
-<li>When a process specifies O<sub>NOFOLLOW</sub> in the flags to open, open should open the symlink (and not follow the symbolic link)</li>
+<li>When a process specifies O_NOFOLLOW in the flags to open, open should open the symlink (and not follow the symbolic link)</li>
 </ul></li>
 <li>If the linked file is also a symbolic link, you must <b>recursively</b> follow it until a non-link file is reached
 <ul class="org-ul">
 <li><p>
 If the links form a cycle, you must return an error code
 </p>
-<pre class="example" id="orgd631752">
+<pre class="example" id="orgd74528b">
 You may approximate this by returning an error code if the depth of links reaches some threshold (e.g., 10)
 </pre></li>
 </ul></li>
 <li><p>
 Other system calls (e.g., link and unlink) <b>must not follow</b> symbolic links
 </p>
-<pre class="example" id="orgedfd121">
+<pre class="example" id="org4fbcddf">
 these system calls operate on the symbolic link itself
 </pre></li>
 </ol>
@@ -320,7 +319,6 @@ these system calls operate on the symbolic link itself
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Wu, Shanliang</p>
-<p class="date">Created: 2026-04-04 Sat 13:12</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

@@ -1,3 +1,5 @@
+#+OPTIONS: num:nil timestamp:nil ^:nil
+
 * Symbol Links 
 #+begin_example
 In this exercise you will add symbolic links to xv6

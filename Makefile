@@ -196,8 +196,6 @@ UPROGS=\
 	$U/_forphan\
 	$U/_dorphan\
 
-
-
 ifeq ($(LAB),util)
 UPROGS += \
 	$U/_sleep\
@@ -261,7 +259,8 @@ endif
 
 ifeq ($(LAB),fs)
 UPROGS += \
-	$U/_bigfile
+	$U/_bigfile\
+	$U/_symlinktest
 endif
 
 
