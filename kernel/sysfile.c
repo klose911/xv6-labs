@@ -314,7 +314,6 @@ find_symlink(struct inode *ip, char *path, int level)
     iunlockput(ip);
     return 0;
   }
-  printf("Following symlink %s -> %s\n", path, target);
   iunlockput(ip);
 
   struct inode *next = namei(target);
@@ -549,7 +548,6 @@ uint64 sys_symlink(void)
   if(argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0) 
     return -1; 
 
-  printf("Creating symlink %s -> %s\n", path, target);
   begin_op();
   if((ip = create(path, T_SYMLINK, 0, 0)) == 0){
     end_op();
