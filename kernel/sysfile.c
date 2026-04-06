@@ -301,6 +301,35 @@ create(char *path, short type, short major, short minor)
   return 0;
 }
 
+static struct inode*
+find_symlink(struct inode *ip, char *path, int level)
+{
+  if (level > 10) {
+    iunlockput(ip);
+    return 0;
+  }
+
+  char target[MAXPATH];
+  if (readi(ip, 0, (uint64) target, 0, MAXPATH) < 0) {
+    iunlockput(ip);
+    return 0;
+  }
+  printf("Following symlink %s -> %s\n", path, target);
+  iunlockput(ip);
+
+  struct inode *next = namei(target);
+  if (next == 0) {
+    return 0;
+  }
+
+  ilock(next);
+  if (next->type == T_SYMLINK) {
+    return find_symlink(next, target, level + 1);
+  } else {
+    return next;
+  }
+}
+
 uint64
 sys_open(void)
 {
@@ -332,6 +361,14 @@ sys_open(void)
       iunlockput(ip);
       end_op();
       return -1;
+    }
+
+    if (ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0) {
+      ip = find_symlink(ip, path, 0);
+      if (ip == 0) {
+        end_op();
+        return -1;  
+      }
     }
   }
 
@@ -512,14 +549,16 @@ uint64 sys_symlink(void)
   if(argstr(0, target, MAXPATH) < 0 || argstr(1, path, MAXPATH) < 0) 
     return -1; 
 
+  printf("Creating symlink %s -> %s\n", path, target);
   begin_op();
   if((ip = create(path, T_SYMLINK, 0, 0)) == 0){
     end_op();
     return -1;
   }
 
-  ilock(ip);
-  strncpy((char*)ip->addrs, target, MAXPATH);
+  // ilock(ip);
+  //strncpy((char*)ip->addrs, target, MAXPATH);
+  writei(ip, 0, (uint64) target, 0, MAXPATH);
   iunlockput(ip);
   end_op(); 
   
