@@ -26,4 +26,9 @@ barrier
 *.dSYM
 *.pcap
 TAGS
-
+.cache/
+fs.img.bk
+.vscode/
+compile_commands.json
+.clangd
+.ccls-cache/

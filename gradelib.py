@@ -123,7 +123,7 @@ def run_tests():
     (options, args) = parser.parse_args()
 
     # Start with a full build to catch build errors
-    make()
+    gmake()
 
     # Clean the file system if there is one
     reset_fs()
@@ -216,26 +216,26 @@ def assert_lines_match(text, *regexps, **kw):
 # Utilities
 #
 
-__all__ += ["make", "maybe_unlink", "reset_fs", "color", "random_str", "check_time", "check_answers"]
+__all__ += ["gmake", "maybe_unlink", "reset_fs", "color", "random_str", "check_time", "check_answers"]
 
 MAKE_TIMESTAMP = 0
 
-def pre_make():
-    """Delay prior to running make to ensure file mtimes change."""
+def pre_gmake():
+    """Delay prior to running gmake to ensure file mtimes change."""
     while int(time.time()) == MAKE_TIMESTAMP:
         time.sleep(0.1)
 
-def post_make():
-    """Record the time after make completes so that the next run of
-    make can be delayed if needed."""
+def post_gmake():
+    """Record the time after gmake completes so that the next run of
+    gmake can be delayed if needed."""
     global MAKE_TIMESTAMP
     MAKE_TIMESTAMP = int(time.time())
 
-def make(*target):
-    pre_make()
-    if Popen(("make",) + target).wait():
+def gmake(*target):
+    pre_gmake()
+    if Popen(("gmake",) + target).wait():
         sys.exit(1)
-    post_make()
+    post_gmake()
 
 def show_command(cmd):
     from shlex import quote
@@ -294,7 +294,7 @@ __all__ += ["QEMU", "GDBClient"]
 class QEMU(object):
     _GDBPORT = None
 
-    def __init__(self, *make_args):
+    def __init__(self, *gmake_args):
         # Check that QEMU is not currently running
         try:
             GDBClient(self.get_gdb_port(), timeout=0).close()
@@ -308,8 +308,8 @@ QEMU appears to already be running.  Please exit it if possible or use
             sys.exit(1)
 
         if options.verbose:
-            show_command(("make",) + make_args)
-        cmd = ("make", "-s", "--no-print-directory") + make_args
+            show_command(("gmake",) + gmake_args)
+        cmd = ("gmake", "-s", "--no-print-directory") + gmake_args
         self.proc = Popen(cmd, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT,
                           stdin=subprocess.PIPE)
@@ -322,12 +322,12 @@ QEMU appears to already be running.  Please exit it if possible or use
     @staticmethod
     def get_gdb_port():
         if QEMU._GDBPORT is None:
-            p = Popen(["make", "-s", "--no-print-directory", "print-gdbport"],
+            p = Popen(["gmake", "-s", "--no-print-directory", "print-gdbport"],
                       stdout=subprocess.PIPE)
             (out, _) = p.communicate()
             if p.returncode:
                 raise RuntimeError(
-                    "Failed to get gdbport: make exited with %d" %
+                    "Failed to get gdbport: gmake exited with %d" %
                     p.returncode)
             QEMU._GDBPORT = int(out)
         return QEMU._GDBPORT
@@ -438,21 +438,21 @@ class Runner():
         be called with this Runner instance once QEMU and GDB are
         started.  Typically, they should register callbacks that throw
         TerminateTest when stop events occur.  The target_base
-        argument gives the make target to run.  The make_args argument
-        should be a list of additional arguments to pass to make.  The
+        argument gives the gmake target to run.  The gmake_args argument
+        should be a list of additional arguments to pass to gmake.  The
         timeout argument bounds how long to run before returning."""
 
-        def run_qemu_kw(target_base="qemu", make_args=[], timeout=30):
-            return target_base, make_args, timeout
-        target_base, make_args, timeout = run_qemu_kw(**kw)
+        def run_qemu_kw(target_base="qemu", gmake_args=[], timeout=30):
+            return target_base, gmake_args, timeout
+        target_base, gmake_args, timeout = run_qemu_kw(**kw)
 
         # Start QEMU
-        pre_make()
-        self.qemu = QEMU(target_base + "-gdb", *make_args)
+        pre_gmake()
+        self.qemu = QEMU(target_base + "-gdb", *gmake_args)
         self.gdb = None
 
         try:
-            # Wait for QEMU to start or make to fail.  This will set
+            # Wait for QEMU to start or gmake to fail.  This will set
             # self.gdb if QEMU starts.
             self.qemu.on_output = [self.__monitor_start]
             self.__react([self.qemu], timeout=90)
@@ -461,7 +461,7 @@ class Runner():
                 print("Failed to connect to QEMU; output:")
                 print(self.qemu.output)
                 sys.exit(1)
-            post_make()
+            post_gmake()
 
             # QEMU and GDB are up
             self.reactors = [self.qemu, self.gdb]
@@ -526,7 +526,7 @@ Failed to shutdown QEMU.  You might need to 'killall qemu' or
 
         maybe_unlink("obj/kern/init.o", "obj/kern/kernel")
         if kw.pop("snapshot", True):
-            kw.setdefault("make_args", []).append("QEMUEXTRA+=-snapshot")
+            kw.setdefault("gmake_args", []).append("QEMUEXTRA+=-snapshot")
         self.run_qemu(target_base="run-%s" % binary, *monitors, **kw)
 
     def match(self, *args, **kwargs):

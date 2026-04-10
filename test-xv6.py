@@ -22,7 +22,7 @@ class QEMU(object):
         if reset:
             self.build_xv6()
             self.reset_fs()
-        q = ["make", "qemu"]
+        q = ["gmake", "qemu"]
         self.proc = subprocess.Popen(q, stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.STDOUT)
@@ -33,13 +33,13 @@ class QEMU(object):
     def reset_fs(self):
         try:
             run(["rm", "fs.img"], check=True)
-            run(["make", "fs.img"], check=True)
+            run(["gmake", "fs.img"], check=True)
         except subprocess.CalledProcessError as e:
             print(f"Command failed with exit code {e.returncode}")
 
     def build_xv6(self):
         try:
-            run(["make", "kernel/kernel"], check=True)
+            run(["gmake", "kernel/kernel"], check=True)
         except subprocess.CalledProcessError as e:
             print(f"Command failed with exit code {e.returncode}")
 
