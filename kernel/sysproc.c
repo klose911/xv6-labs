@@ -108,7 +108,21 @@ sys_uptime(void)
 
 uint64 sys_mmap(void) 
 {
-  return 0; // not implemented
+  void *addr;
+  int length, prot, flags, fd, offset;
+
+  argaddr(0, (uint64 *)&addr);
+  argint(1, &length);
+  argint(2, &prot);
+  argint(3, &flags);
+  argint(4, &fd);
+  argint(5, &offset);
+
+  addr = do_mmap(addr, length, prot, flags, fd, offset);
+  if (addr == (void *)-1) {
+    return -1;
+  }
+  return (uint64)addr;
 }
 
 uint64 sys_munmap(void) 
