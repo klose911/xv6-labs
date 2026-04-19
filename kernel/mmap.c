@@ -82,8 +82,10 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
 }
 
 struct vma *find_vma(struct proc *p, uint64 addr) {
+  struct vma *vma; 
   for (int i = 0; i < VMA_SIZE; i++) {
-    if (p->vmas[i].start <= addr && addr < p->vmas[i].start + p->vmas[i].length) {
+    vma = &p->vmas[i];
+    if (vma && vma->start <= addr && addr < vma->start + vma->length) {
       return &p->vmas[i];
     }
   }
