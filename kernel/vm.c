@@ -454,8 +454,8 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 uint64
 vmfault(pagetable_t pagetable, uint64 va, int read)
 {
-  uint64 mem;
-  struct proc *p = myproc();
+  uint64 mem = 0;
+  struct proc *p = myproc(); 
 
   if ((va >= p->sz && va < MIN_VMA_ADDR) || va >= MAXVA) 
     goto fail;
