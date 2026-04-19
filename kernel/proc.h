@@ -81,13 +81,14 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+// virtual memory area
 struct vma {
-    uint64 start;
-    uint64 end;
-    int prot;
-    int flags;
-    struct file *file;
-    int offset;
+    uint64 start; // the starting address of the virtual memory area 
+    uint64 length; // the length of the virtual memory area
+    int prot; // the protection flags of the virtual memory area
+    int flags; // the mapping flags of the virtual memory area
+    struct file *file; // the file associated with the virtual memory area, if any
+    int offset; // the offset in the file for the mapping, if any
 };
 
 // Per-process state

@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "fcntl.h"
 
 /*
  * the kernel's page table.
@@ -97,8 +98,9 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
-  if(va >= MAXVA)
+  if(va >= MAXVA) 
     panic("walk");
+  
 
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
@@ -455,21 +457,37 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   uint64 mem;
   struct proc *p = myproc();
 
-  if (va >= p->sz)
-    return 0;
+  if ((va >= p->sz && va < MIN_VMA_ADDR) || va >= MAXVA) 
+    goto fail;
+
   va = PGROUNDDOWN(va);
-  if(ismapped(pagetable, va)) {
-    return 0;
-  }
+  if(ismapped(pagetable, va)) 
+    goto fail;
+
   mem = (uint64) kalloc();
   if(mem == 0)
-    return 0;
+    goto fail;
+
   memset((void *) mem, 0, PGSIZE);
-  if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
-    kfree((void *)mem);
-    return 0;
+  int perm = PTE_R | PTE_U | PTE_W;
+
+  if (va >= MIN_VMA_ADDR) { 
+    struct vma *vma = find_vma(p, va);
+    if (!vma || read_from_file(vma, va, mem)) 
+      goto fail;
+    if ((vma->prot & PROT_WRITE) == 0) 
+      perm &= ~PTE_W;
+  }
+
+  if (mappages(p->pagetable, va, PGSIZE, mem, perm) != 0) {
+    goto fail;
   }
   return mem;
+
+  fail:
+    if (mem)
+      kfree((void *)mem);
+    return 0;
 }
 
 int
@@ -484,3 +502,5 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+
