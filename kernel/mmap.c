@@ -16,17 +16,7 @@
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
-// static int prot2perm(int flags) {
-//   int perm = 0;
-//   if (flags & PROT_READ) {
-//     perm |= PTE_R;
-//   }
-  
-//   if (flags & PROT_WRITE) {
-//     perm |= PTE_W;
-//   }
-//   return perm | PTE_U;
-// } 
+
 
 void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
   if (length < 0 || offset < 0 || offset % PGSIZE != 0) {
@@ -89,4 +79,40 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
   filedup(free_vma->file);
   release(&p->lock);
   return (void *) start;
+}
+
+struct vma *find_vma(struct proc *p, uint64 addr) {
+  for (int i = 0; i < VMA_SIZE; i++) {
+    if (p->vmas[i].start <= addr && addr < p->vmas[i].start + p->vmas[i].length) {
+      return &p->vmas[i];
+    }
+  }
+  return 0;
+}
+
+int read_from_file(struct vma *vma, uint64 va, uint64 mem) {
+  struct file *f = vma->file; 
+  if (!f) {
+    panic("vma has no file");
+  }
+  
+  struct inode *ip = f->ip; 
+  if (!ip) {
+    panic("vma file has no inode");
+  }
+
+  uint64 offset = vma->offset + (va - vma->start);
+  if (offset > ip->size) {
+    panic("offset exceeds file size");
+  }
+
+  int n = offset + PGSIZE > ip->size ? ip->size - offset : PGSIZE;
+  ilock(ip);
+  if (readi(ip, 0, mem, offset, n) != n) {
+    iunlock(ip);
+    return -1;
+  }
+  iunlock(ip);
+  return 0; 
+
 }

@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "fcntl.h"
 
 /*
  * the kernel's page table.
@@ -455,8 +456,8 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   uint64 mem;
   struct proc *p = myproc();
 
-  if (va >= p->sz)
-    return 0;
+  // if (va >= p->sz)
+  //   return 0;
   va = PGROUNDDOWN(va);
   if(ismapped(pagetable, va)) {
     return 0;
@@ -465,7 +466,20 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
   if(mem == 0)
     return 0;
   memset((void *) mem, 0, PGSIZE);
-  if (mappages(p->pagetable, va, PGSIZE, mem, PTE_W|PTE_U|PTE_R) != 0) {
+  
+  struct vma *vma = find_vma(p, va);
+  int perm = PTE_R | PTE_U | PTE_W;
+  if (vma) {
+    if (read_from_file(vma, va, mem)) {
+      kfree((void *)mem);
+      return 0;
+    }
+    if ((vma->prot & PROT_WRITE) == 0) {
+      perm &= ~PTE_W;
+    }
+  }
+
+  if (mappages(p->pagetable, va, PGSIZE, mem, perm) != 0) {
     kfree((void *)mem);
     return 0;
   }
@@ -484,3 +498,4 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
