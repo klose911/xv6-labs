@@ -469,14 +469,37 @@ vmfault(pagetable_t pagetable, uint64 va, int read)
     goto fail;
 
   memset((void *) mem, 0, PGSIZE);
-  int perm = PTE_R | PTE_U | PTE_W;
+  int perm = PTE_U;
 
-  if (va >= MIN_VMA_ADDR) { 
+  int is_vma = va >= MIN_VMA_ADDR && va < TRAPFRAME; 
+  if (is_vma) { 
     struct vma *vma = find_vma(p, va);
-    if (!vma || read_from_file(vma, va, mem)) 
+    if (!vma) 
       goto fail;
-    if ((vma->prot & PROT_WRITE) == 0) 
-      perm &= ~PTE_W;
+
+    if (read && (vma->prot & PROT_READ) == 0) 
+      goto fail;
+    
+    if (!read && (vma->prot & PROT_WRITE) == 0) 
+      goto fail;
+
+    if (read) { // if it's a read access and the vma has an associated file, read data from the file to the memory
+      if (read_from_file(vma, va, mem) < 0) {
+        goto fail;
+      }
+    } else { // if it's a write access, set the dirty bit so that the page will be written back to the file when it's evicted
+      perm |= PTE_D;
+    } 
+
+    if (vma->prot & PROT_READ) {
+      perm |= PTE_R;
+    }
+    
+    if (vma->prot & PROT_WRITE) {
+      perm |= PTE_W;
+    }
+  } else {
+    perm |= PTE_R | PTE_W;
   }
 
   if (mappages(p->pagetable, va, PGSIZE, mem, perm) != 0) {
@@ -503,4 +526,16 @@ ismapped(pagetable_t pagetable, uint64 va)
   return 0;
 }
 
+int
+isdirty(pagetable_t pagetable, uint64 va)
+{
+  pte_t *pte = walk(pagetable, va, 0);
+  if (pte == 0) {
+    return 0;
+  }
+  if (*pte & PTE_D){
+    return 1;
+  }
+  return 0;
+}
 
