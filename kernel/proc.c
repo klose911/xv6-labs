@@ -329,6 +329,12 @@ kexit(int status)
     panic("init exiting");
 
   // Close all open files.
+  for (int i = 0; i < VMA_SIZE; i++) {
+    if (p->vmas[i].start) {
+      do_munmap((void *)p->vmas[i].start, p->vmas[i].length);
+    }
+  }
+
   for(int fd = 0; fd < NOFILE; fd++){
     if(p->ofile[fd]){
       struct file *f = p->ofile[fd];
