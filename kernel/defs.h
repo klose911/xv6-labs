@@ -113,6 +113,7 @@ void            procdump(void);
 void            *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset);
 struct vma* find_vma(struct proc *p, uint64 addr);
 int read_from_file(struct vma *vma, uint64 va, uint64 mem);
+int            do_munmap(void *addr, uint64 length);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -191,6 +192,7 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             ismapped(pagetable_t, uint64);
 uint64          vmfault(pagetable_t, uint64, int);
+int             isdirty(pagetable_t, uint64);
 #if defined(LAB_PGTBL) || defined(SOL_MMAP)
 void            vmprint(pagetable_t);
 #endif

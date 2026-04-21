@@ -127,5 +127,10 @@ uint64 sys_mmap(void)
 
 uint64 sys_munmap(void) 
 {
-  return 0; // not implemented
+  void *addr; 
+  uint64 length; 
+  argaddr(0, (uint64 *)&addr);
+  argaddr(1, &length);
+
+  return do_munmap(addr, length);
 }

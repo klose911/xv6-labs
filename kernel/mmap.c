@@ -7,18 +7,20 @@
 #include "riscv.h"
 #include "memlayout.h"
 #include "spinlock.h"
-#include "proc.h"
 #include "sleeplock.h"
+#include "proc.h"
 #include "fs.h"
 #include "file.h"
 #include "defs.h"
 #include "fcntl.h"
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#define MAX_LOG_SIZE (((MAXOPBLOCKS-1-1-2) / 2) * BSIZE)
 
 
 
-void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
+void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) 
+{
   if (length < 0 || offset < 0 || offset % PGSIZE != 0) {
     return (void *) -1; 
   } 
@@ -40,9 +42,8 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
 
   if ((flags & MAP_SHARED) == 0 && (flags & MAP_PRIVATE) == 0) {
     return (void *)-1; 
-  } 
-  
-  acquire(&p->lock);
+  }
+
   struct vma *free_vma = 0; 
   for (int i = 0; i < VMA_SIZE; i++) {
     if (!p->vmas[i].start) {
@@ -52,7 +53,6 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
   }
   
   if (!free_vma) { // no free vma slot
-    release(&p->lock);
     return (void *)-1; 
   } 
 
@@ -64,7 +64,6 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
   }
 
   if (start + length >= TRAPFRAME) { // no enough space for new vma
-    release(&p->lock);
     return (void *)-1; 
   }
 
@@ -77,11 +76,11 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset) {
   free_vma->offset = offset;
 
   filedup(free_vma->file);
-  release(&p->lock);
   return (void *) start;
 }
 
-struct vma *find_vma(struct proc *p, uint64 addr) {
+struct vma *find_vma(struct proc *p, uint64 addr) 
+{
   struct vma *vma; 
   for (int i = 0; i < VMA_SIZE; i++) {
     vma = &p->vmas[i];
@@ -92,7 +91,8 @@ struct vma *find_vma(struct proc *p, uint64 addr) {
   return 0;
 }
 
-int read_from_file(struct vma *vma, uint64 va, uint64 mem) {
+int read_from_file(struct vma *vma, uint64 va, uint64 mem) 
+{
   struct file *f = vma->file; 
   if (!f) {
     panic("vma has no file");
@@ -117,4 +117,84 @@ int read_from_file(struct vma *vma, uint64 va, uint64 mem) {
   iunlock(ip);
   return 0; 
 
+}
+
+static int write_back_to_file(struct vma *vma, uint64 va);
+
+int do_munmap(void *addr, uint64 length) 
+{
+  if (length == 0 || (uint64)addr % PGSIZE != 0 || 
+  (uint64)addr < MIN_VMA_ADDR || (uint64)addr >= TRAPFRAME) {
+    return -1; 
+  }
+
+  struct proc *p = myproc();
+  struct vma *vma = find_vma(p, (uint64)addr); 
+  if (!vma) {
+    return -1;  
+  }
+
+  if (vma->flags & MAP_SHARED) {
+    uint64 va = (uint64) addr; 
+    while(va < (uint64) addr + length) {
+      if (isdirty(p->pagetable, va)) {
+        // write back to file if the page is dirty
+        if (write_back_to_file(vma, va) < 0) {
+          return -1; 
+        }
+      }
+      va += PGSIZE;
+    }
+  } 
+
+  // unmap the pages 
+  uvmunmap(p->pagetable, (uint64) addr, PGROUNDUP(length) / PGSIZE, 1);
+  // update the vma slot
+  if ((uint64) addr == vma->start) {
+    if (length == vma->length) {
+      vma->start = 0;
+      vma->length = 0;
+      vma->prot = 0;
+      vma->flags = 0;
+      vma->offset = 0;
+      fileclose(vma->file);
+      vma->file = 0;
+    } else {
+      vma->start += PGROUNDUP(length);
+      vma->length -= PGROUNDUP(length);
+      vma->offset += PGROUNDUP(length);
+    }
+  } else if ((uint64) addr + length == vma->start + vma->length) {
+    vma->length -= PGROUNDUP(length);
+  } else {
+    panic("munmap can only unmap from the start or the end of the vma");
+  }
+  return 0;
+}
+
+int write_back_to_file(struct vma *vma, uint64 va) 
+{
+    int i = 0;
+    int r;
+    struct file *f = vma->file;
+
+    while(i < PGSIZE){
+      int n1 = PGSIZE - i;
+      if(n1 > MAX_LOG_SIZE)
+        n1 = MAX_LOG_SIZE;
+
+      begin_op();
+      ilock(f->ip);
+
+      if ((r = writei(f->ip, 1, va + i, vma->offset + (va - vma->start) + i, n1)) < n1) {
+        iunlock(f->ip);
+        end_op();
+        break;
+      }
+      iunlock(f->ip);
+      end_op();
+      i += n1;
+    }
+
+    return i == PGSIZE ? PGSIZE : -1;
 }
