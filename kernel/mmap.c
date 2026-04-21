@@ -15,6 +15,7 @@
 #include "fcntl.h"
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b)) 
 #define MAX_LOG_SIZE (((MAXOPBLOCKS-1-1-2) / 2) * BSIZE)
 
 
@@ -30,7 +31,7 @@ void *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset)
     return (void *) -1; 
   }
    
-  if (prot & PROT_WRITE) {
+  if ((prot & PROT_WRITE) && (flags & MAP_SHARED)) {
     if (p->ofile[fd]->writable == 0) {
       return (void *)-1; 
     }
@@ -119,7 +120,7 @@ int read_from_file(struct vma *vma, uint64 va, uint64 mem)
 
 }
 
-static int write_back_to_file(struct vma *vma, uint64 va);
+static int write_back_to_file(struct vma *vma, uint64 va, int n);
 
 int do_munmap(void *addr, uint64 length) 
 {
@@ -136,10 +137,11 @@ int do_munmap(void *addr, uint64 length)
 
   if (vma->flags & MAP_SHARED) {
     uint64 va = (uint64) addr; 
-    while(va < (uint64) addr + length) {
+    uint64 end = min(length, vma->file->ip->size - vma->offset - (va - vma->start));
+    while(va < (uint64) addr + end) {
       if (isdirty(p->pagetable, va)) {
         // write back to file if the page is dirty
-        if (write_back_to_file(vma, va) < 0) {
+        if (write_back_to_file(vma, va, min(PGSIZE, (uint64) addr + end - va)) < 0) {
           return -1; 
         }
       }
@@ -148,7 +150,7 @@ int do_munmap(void *addr, uint64 length)
   } 
 
   // unmap the pages 
-  uvmunmap(p->pagetable, (uint64) addr, PGROUNDUP(length) / PGSIZE, 1);
+  uvmunmap(p->pagetable, (uint64) addr, (length - 1) / PGSIZE + 1, 1);
   // update the vma slot
   if ((uint64) addr == vma->start) {
     if (length == vma->length) {
@@ -160,26 +162,27 @@ int do_munmap(void *addr, uint64 length)
       fileclose(vma->file);
       vma->file = 0;
     } else {
-      vma->start += PGROUNDUP(length);
-      vma->length -= PGROUNDUP(length);
-      vma->offset += PGROUNDUP(length);
+      vma->start += length;
+      vma->length -= length;
+      vma->offset += length;
     }
   } else if ((uint64) addr + length == vma->start + vma->length) {
-    vma->length -= PGROUNDUP(length);
+    vma->length -= length;
   } else {
     panic("munmap can only unmap from the start or the end of the vma");
   }
   return 0;
 }
 
-int write_back_to_file(struct vma *vma, uint64 va) 
+int write_back_to_file(struct vma *vma, uint64 va, int n) 
 {
     int i = 0;
     int r;
     struct file *f = vma->file;
+    printf("write_back_to_file: va=0x%lx, n=%d\n", va, n);
 
-    while(i < PGSIZE){
-      int n1 = PGSIZE - i;
+    while(i < n){
+      int n1 = n - i;
       if(n1 > MAX_LOG_SIZE)
         n1 = MAX_LOG_SIZE;
 
@@ -196,5 +199,5 @@ int write_back_to_file(struct vma *vma, uint64 va)
       i += n1;
     }
 
-    return i == PGSIZE ? PGSIZE : -1;
+    return i == n ? n : -1;
 }
