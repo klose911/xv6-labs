@@ -179,7 +179,6 @@ int write_back_to_file(struct vma *vma, uint64 va, int n)
     int i = 0;
     int r;
     struct file *f = vma->file;
-    printf("write_back_to_file: va=0x%lx, n=%d\n", va, n);
 
     while(i < n){
       int n1 = n - i;

@@ -286,8 +286,12 @@ kfork(void)
 
   for (i = 0; i < VMA_SIZE; i++) {
     if (p->vmas[i].start) {
-      np->vmas[i] = p->vmas[i];
-      filedup(np->vmas[i].file);
+      np->vmas[i].start = p->vmas[i].start;
+      np->vmas[i].length = p->vmas[i].length;
+      np->vmas[i].prot = p->vmas[i].prot;
+      np->vmas[i].flags = p->vmas[i].flags;
+      np->vmas[i].file = filedup(p->vmas[i].file);
+      np->vmas[i].offset = p->vmas[i].offset;
     }
   }
   
