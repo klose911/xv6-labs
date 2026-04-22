@@ -113,7 +113,7 @@ void            procdump(void);
 void            *do_mmap(void *addr, int length, int prot, int flags, int fd, int offset);
 struct vma* find_vma(struct proc *p, uint64 addr);
 int read_from_file(struct vma *vma, uint64 va, uint64 mem);
-int            do_munmap(void *addr, uint64 length);
+int            do_munmap(uint64 addr, int length);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
