@@ -122,26 +122,26 @@ int read_from_file(struct vma *vma, uint64 va, uint64 mem)
 
 static int write_back_to_file(struct vma *vma, uint64 va, int n);
 
-int do_munmap(void *addr, uint64 length) 
+int do_munmap(uint64 addr, int length) 
 {
-  if (length == 0 || (uint64)addr % PGSIZE != 0 || 
-  (uint64)addr < MIN_VMA_ADDR || (uint64)addr >= TRAPFRAME) {
+  if (length == 0 || addr % PGSIZE != 0 || 
+  addr < MIN_VMA_ADDR || addr >= TRAPFRAME) {
     return -1; 
   }
 
   struct proc *p = myproc();
-  struct vma *vma = find_vma(p, (uint64)addr); 
+  struct vma *vma = find_vma(p, addr); 
   if (!vma) {
     return -1;  
   }
 
   if (vma->flags & MAP_SHARED) {
-    uint64 va = (uint64) addr; 
+    uint64 va = addr; 
     uint64 end = min(length, vma->file->ip->size - vma->offset - (va - vma->start));
-    while(va < (uint64) addr + end) {
+    while(va < addr + end) {
       if (isdirty(p->pagetable, va)) {
         // write back to file if the page is dirty
-        if (write_back_to_file(vma, va, min(PGSIZE, (uint64) addr + end - va)) < 0) {
+        if (write_back_to_file(vma, va, min(PGSIZE, addr + end - va)) < 0) {
           return -1; 
         }
       }
@@ -150,9 +150,9 @@ int do_munmap(void *addr, uint64 length)
   } 
 
   // unmap the pages 
-  uvmunmap(p->pagetable, (uint64) addr, (length - 1) / PGSIZE + 1, 1);
+  uvmunmap(p->pagetable, addr, (length - 1) / PGSIZE + 1, 1);
   // update the vma slot
-  if ((uint64) addr == vma->start) {
+  if (addr == vma->start) {
     if (length == vma->length) {
       vma->start = 0;
       vma->length = 0;
@@ -166,7 +166,7 @@ int do_munmap(void *addr, uint64 length)
       vma->length -= length;
       vma->offset += length;
     }
-  } else if ((uint64) addr + length == vma->start + vma->length) {
+  } else if (addr + length == vma->start + vma->length) {
     vma->length -= length;
   } else {
     panic("munmap can only unmap from the start or the end of the vma");
