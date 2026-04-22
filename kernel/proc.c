@@ -283,6 +283,14 @@ kfork(void)
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
+
+  for (i = 0; i < VMA_SIZE; i++) {
+    if (p->vmas[i].start) {
+      np->vmas[i] = p->vmas[i];
+      filedup(np->vmas[i].file);
+    }
+  }
+  
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
